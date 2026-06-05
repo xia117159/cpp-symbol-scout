@@ -1,0 +1,14 @@
+[project]
+name = "cpp-include-analyzer"
+version = "0.1.0"
+description = "Analyze C++ include graphs for coupling and build-cost risk."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+include-analyzer = "include_analyzer.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+

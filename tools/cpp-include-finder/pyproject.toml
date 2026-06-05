@@ -1,0 +1,14 @@
+[project]
+name = "cpp-include-finder"
+version = "0.1.0"
+description = "Find C++ declaration headers for AI-assisted large-project development."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+include-finder = "include_finder.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
