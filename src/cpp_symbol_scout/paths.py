@@ -53,8 +53,8 @@ class ProjectConfig:
         if require_compile_db and db_dir is None:
             raise ConfigurationError(
                 "no compile_commands.json or compile_flags.txt was found. "
-                "For Godot, generate it first, for example with SCons compiledb support, "
-                "then pass --compile-commands-dir if it is not in the project root."
+                "Generate one with your build system, then pass --compile-commands-dir "
+                "if it is not in the project root."
             )
 
         return cls(

@@ -23,7 +23,7 @@ from .lsp import ClangdClient
 from .paths import ConfigurationError, ProjectConfig, runtime_paths
 
 
-DEFAULT_PROJECT = "/home/cheng/godotengine/godot-master"
+DEFAULT_PROJECT = "."
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -357,9 +357,10 @@ def _add_project_args(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_client_project_arg(parser: argparse.ArgumentParser) -> None:
+    default_project = os.environ.get("CPP_CLANGD_PROJECT", DEFAULT_PROJECT)
     parser.add_argument(
         "-p",
         "--project",
-        default=os.environ.get("CPP_CLANGD_PROJECT", DEFAULT_PROJECT),
-        help=f"project root, default: {DEFAULT_PROJECT}",
+        default=default_project,
+        help=f"project root, default: {default_project}",
     )

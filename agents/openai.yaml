@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Symbol Scout"
+  short_description: "Fast clangd C/C++ symbol lookup"
+  default_prompt: "Use $cpp-symbol-scout to find the definition and source snippet for a C++ symbol."

@@ -1,162 +1,197 @@
-# cpp-symbol-scout 使用说明
+# cpp-symbol-scout
 
-cpp-symbol-scout 是一个基于 clangd 的 C++ 符号查询 CLI 工具。它可以通过类名、函数名、方法名等符号名称，查询定义位置并返回完整源码片段。
+cpp-symbol-scout 是一个基于 clangd 的 C/C++ 符号查询工具，同时也是一个可复用的 AI Agent Skill。它可以通过类名、函数名、方法名、限定名等输入，快速定位定义或实现位置，并返回完整源码片段。
 
-本工具的推荐使用方式：
+这个仓库包含两部分：
 
-1. 为 C++ 项目准备 `compile_commands.json`。
-2. 启动一个常驻 `cpp-symbol-scout` daemon。
-3. 后续查询都通过 CLI 连接 daemon，复用同一个 clangd 进程和索引缓存。
+- Python CLI：`cpp-symbol-scout`，通过常驻 daemon 复用 clangd 进程和索引缓存。
+- 通用 Skill：根目录 `SKILL.md`，可安装到 Codex CLI 或 OpenCode 的技能目录中。
 
-## 性能说明
+## 方案概览
 
-1 秒内返回结果的前提是：
+推荐工作流如下：
 
-- daemon 已经启动；
-- clangd 已完成初始化；
-- 项目的 background index 已经构建，或相关文件已经被查询缓存；
-- 不是首次启动大型项目索引。
+1. 为目标 C/C++ 项目准备 `compile_commands.json` 或 `compile_flags.txt`。
+2. 启动 `cpp-symbol-scout` daemon。
+3. 通过 CLI 或 AI Agent Skill 发起符号查询。
+4. 对同一项目反复查询时复用同一个 clangd 进程，降低初始化和索引成本。
 
-首次启动 Godot 这种大型 C++ 项目时，clangd 会在后台索引大量文件，可能持续数分钟，CPU 占用较高，这是正常现象。索引完成后，常用符号查询会明显变快。
+1 秒内返回结果的前提是 daemon 已启动、clangd 已初始化，并且 background index 已经覆盖相关符号。首次索引大型项目时可能需要数分钟，这是 clangd 的正常行为。
 
-## 当前机器状态
+## 安装 CLI
 
-当前机器已确认：
-
-- `clangd-18` 已安装，可执行文件为 `/usr/bin/clangd-18`。
-- Godot 项目路径为 `/home/cheng/godotengine/godot-master`。
-- Godot 的 `compile_commands.json` 已生成：
-  `/home/cheng/godotengine/godot-master/compile_commands.json`
-- 如需重新生成 Godot 编译数据库，需要系统安装 SCons，或在本仓库创建本地 `.venv` 后安装 SCons。
-
-## 安装本工具
-
-在 `/home/cheng/workspace/cpp-symbol-scout` 下执行：
+在仓库根目录执行：
 
 ```bash
 python3 -m pip install -e .
 ```
 
-如果不想安装到 Python 环境，也可以直接用 `PYTHONPATH` 运行：
+也可以不安装，直接通过 `PYTHONPATH` 运行：
 
 ```bash
 PYTHONPATH=src python3 -B -m cpp_symbol_scout --help
 ```
 
-## 生成 Godot 编译数据库
-
-如果 Godot 的 `compile_commands.json` 不存在，先生成它。
-
-进入 Godot 项目：
+确认 clangd 可用：
 
 ```bash
-cd /home/cheng/godotengine/godot-master
+clangd --version
 ```
 
-如果系统已有 `scons`，可以执行：
+如果系统安装的是带版本号的命令，也可以使用：
 
 ```bash
-scons compiledb=yes compiledb_gen_only=yes platform=linuxbsd target=editor dev_build=yes tests=no -j2
+clangd-18 --version
 ```
 
-如果系统没有 `scons`，可以在本仓库创建本地虚拟环境：
+## 准备编译数据库
+
+CMake 项目：
 
 ```bash
-cd /home/cheng/workspace/cpp-symbol-scout
-python3 -m venv .venv
-.venv/bin/python -m pip install SCons
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
 
-然后再生成 Godot 编译数据库：
+Make 或其他编译命令可通过 Bear 生成：
 
 ```bash
-cd /home/cheng/godotengine/godot-master
-/home/cheng/workspace/cpp-symbol-scout/.venv/bin/scons compiledb=yes compiledb_gen_only=yes platform=linuxbsd target=editor dev_build=yes tests=no -j2
+bear -- make -j"$(nproc)"
 ```
 
-生成成功后应看到：
-
-```text
-/home/cheng/godotengine/godot-master/compile_commands.json
-```
-
-## 启动 daemon
-
-在 `/home/cheng/workspace/cpp-symbol-scout` 下执行：
+SCons 项目如果支持 compiledb：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout start --project /home/cheng/godotengine/godot-master --wait
+scons compiledb=yes compiledb_gen_only=yes
 ```
 
-启动成功时会看到类似：
-
-```text
-daemon ready: 127.0.0.1:55490
-```
-
-查看 daemon 状态：
+如果编译数据库不在项目根目录，启动 daemon 时传入：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout status --project /home/cheng/godotengine/godot-master
+cpp-symbol-scout start --project /path/to/project --compile-commands-dir /path/to/project/build --wait
 ```
 
-停止 daemon：
+## 使用 CLI
+
+启动 daemon：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout stop --project /home/cheng/godotengine/godot-master
+cpp-symbol-scout start --project /path/to/project --wait
 ```
 
-## 查询符号
-
-查询类：
+查看状态：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout query Node --project /home/cheng/godotengine/godot-master --timeout 1 -n 1
+cpp-symbol-scout status --project /path/to/project
 ```
 
-查询另一个类：
+查询类或结构体：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout query EditorNode --project /home/cheng/godotengine/godot-master --timeout 1 -n 1
+cpp-symbol-scout query 'ClassName' --project /path/to/project --timeout 1 -n 1
 ```
 
-查询方法名：
+查询函数或方法：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout query _save_scene --project /home/cheng/godotengine/godot-master --timeout 4 -n 2
+cpp-symbol-scout query 'method_name' --project /path/to/project --timeout 4 -n 5
+```
+
+查询限定名：
+
+```bash
+cpp-symbol-scout query 'Namespace::ClassName::method_name' --project /path/to/project -n 3
 ```
 
 只输出第一个结果的源码片段：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout query EditorNode --project /home/cheng/godotengine/godot-master --source-only
+cpp-symbol-scout query 'ClassName' --project /path/to/project --source-only
 ```
 
 输出 JSON：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout query Node --project /home/cheng/godotengine/godot-master --json
+cpp-symbol-scout query 'ClassName' --project /path/to/project --json
 ```
 
-## 不使用 daemon 的直接查询模式
-
-direct 模式会在当前进程临时启动 clangd，适合调试安装和 LSP 链路：
+停止 daemon：
 
 ```bash
-PYTHONPATH=src python3 -B -m cpp_symbol_scout query Node --direct --project /home/cheng/godotengine/godot-master --timeout 8 -n 1
+cpp-symbol-scout stop --project /path/to/project
 ```
 
-注意：direct 模式每次都要启动 clangd，不适合追求 1 秒内响应的大型项目查询。
+直接查询模式用于排查 clangd 链路，不适合性能敏感查询：
+
+```bash
+cpp-symbol-scout query 'ClassName' --direct --project /path/to/project --timeout 8 -n 1
+```
+
+## 安装为 Codex CLI Skill
+
+将本仓库软链接到 Codex CLI 的技能目录：
+
+```bash
+mkdir -p ~/.codex/skills
+ln -sfn /home/cheng/workspace/cpp-symbol-scout ~/.codex/skills/cpp-symbol-scout
+```
+
+使用时可以在请求中显式写：
+
+```text
+使用 $cpp-symbol-scout 帮我查找 Foo::bar 的实现位置和源码片段。
+```
+
+也可以直接描述 C/C++ 符号查询任务，由技能描述触发。
+
+## 安装为 OpenCode Skill
+
+OpenCode 支持从项目或全局目录加载 `SKILL.md`。全局安装：
+
+```bash
+mkdir -p ~/.config/opencode/skills
+ln -sfn /home/cheng/workspace/cpp-symbol-scout ~/.config/opencode/skills/cpp-symbol-scout
+```
+
+项目本地安装：
+
+```bash
+mkdir -p .opencode/skills
+ln -sfn /home/cheng/workspace/cpp-symbol-scout .opencode/skills/cpp-symbol-scout
+```
+
+如果 OpenCode 权限配置限制了技能加载，在 `opencode.json` 中允许该技能：
+
+```json
+{
+  "permission": {
+    "skill": {
+      "cpp-symbol-scout": "allow"
+    }
+  }
+}
+```
+
+## Skill 内容结构
+
+核心入口：
+
+- `SKILL.md`：技能元数据和核心工作流。
+- `agents/openai.yaml`：Codex 侧展示元数据。
+- `references/cli-workflow.md`：CLI、daemon、查询方式细节。
+- `references/integration.md`：Codex CLI 与 OpenCode 安装方式。
+- `references/troubleshooting.md`：clangd、编译数据库、性能和无结果排查。
+
+AI Agent 使用该 Skill 时，会优先使用已安装的 `cpp-symbol-scout` 命令；如果命令不存在，则通过本仓库的 `PYTHONPATH=src python3 -B -m cpp_symbol_scout` 运行。
 
 ## 常用参数
 
 `--project`
 
-C++ 项目根目录。默认是 `/home/cheng/godotengine/godot-master`。
+C/C++ 项目根目录。默认是当前目录，也可以通过环境变量 `CPP_CLANGD_PROJECT` 设置。
 
 `--clangd`
 
-clangd 可执行文件路径。不传时工具会自动查找 `clangd`、`clangd-18` 等常见命令。
+clangd 可执行文件路径。不传时会自动查找 `clangd`、`clangd-18` 等常见命令。
 
 `--compile-commands-dir`
 
@@ -172,26 +207,28 @@ clangd 可执行文件路径。不传时工具会自动查找 `clangd`、`clangd
 
 `--json`
 
-输出 JSON，便于其他脚本消费。
+输出 JSON，便于脚本或 Agent 消费。
 
 `--source-only`
 
 只输出第一个结果的源码片段。
 
+`--direct`
+
+临时启动 clangd 执行一次查询，主要用于调试。
+
 ## 实现概要
 
-cpp-symbol-scout daemon 会持有一个长期运行的 clangd 进程，并通过 LSP 请求完成查询。
-
-主要使用的 LSP 能力包括：
+daemon 会持有一个长期运行的 clangd 进程，并通过 LSP 请求完成查询。主要使用的 LSP 能力包括：
 
 - `workspace/symbol`
 - `textDocument/documentSymbol`
 - `textDocument/definition`
 - `textDocument/implementation`
 
-当 clangd 的 background index 尚未完成时，工具会使用 `documentSymbol` 作为 fallback，优先保证能查到当前符号的定义片段。重复查询会缓存在 daemon 内存中。
+当 clangd 的 background index 尚未完成时，工具会使用 `documentSymbol` 作为 fallback。重复查询结果会缓存在 daemon 内存中。
 
-## 验证命令
+## 验证
 
 运行单元测试：
 
@@ -199,8 +236,8 @@ cpp-symbol-scout daemon 会持有一个长期运行的 clangd 进程，并通过
 PYTHONPATH=src python3 -B -m unittest discover -s tests -v
 ```
 
-当前已验证：
+验证 Skill frontmatter：
 
-- `Node` 查询可以返回 `scene/main/node.h` 中的完整 `class Node` 定义。
-- `EditorNode` 查询可以返回 `editor/editor_node.h` 中的完整 `class EditorNode` 定义。
-- 缓存后的 `Node` / `EditorNode` 查询可在 1 秒内返回。
+```bash
+python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
+```
