@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import signal
 import socket
 import sys
@@ -13,9 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from .lsp import ClangdClient, LspError
-from .models import FUNCTIONLIKE_KINDS, Location, QueryResult, Range, SymbolCandidate
+from .models import CLASSLIKE_KINDS, FUNCTIONLIKE_KINDS, Location, QueryResult, Range, SymbolCandidate
 from .paths import ConfigurationError, ProjectConfig, runtime_paths
 from .snippets import extract_source
+
+
+SOURCE_ROOTS = ("core", "scene", "editor", "servers", "main", "modules", "drivers")
+SOURCE_SUFFIXES = {".h", ".hpp", ".hh", ".cpp", ".cc", ".cxx"}
 
 
 class DaemonError(RuntimeError):
@@ -192,7 +197,10 @@ def query_with_client(
         limit=max(options.limit * 4, 20),
         timeout=workspace_budget,
     )
-    selected = _dedupe_candidates(candidates, limit=options.limit)
+    selected = _dedupe_candidates(
+        _prefer_function_definitions(candidates, project_root, symbol),
+        limit=options.limit,
+    )
     results: list[QueryResult] = []
 
     for candidate in selected:
@@ -223,8 +231,23 @@ def _result_for_candidate(
 ) -> QueryResult | None:
     location = candidate.location
     resolution = "workspace-symbol"
+    if not location.path.exists():
+        return None
 
     if resolve_implementation and candidate.kind in FUNCTIONLIKE_KINDS:
+        current_snippet = _extract_candidate_source(location, candidate, query)
+        if _looks_like_function_definition(current_snippet):
+            return QueryResult(
+                name=candidate.name,
+                full_name=candidate.full_name,
+                kind=candidate.kind,
+                location=location,
+                source=current_snippet.source,
+                source_range=current_snippet.range,
+                resolution=resolution,
+                elapsed_ms=0.0,
+            )
+
         implementation = None
         definition = None
         try:
@@ -258,9 +281,6 @@ def _result_for_candidate(
             if definition is not None:
                 location = definition
                 resolution = "definition"
-
-    if not location.path.exists():
-        return None
 
     snippet = extract_source(
         location.path,
@@ -458,7 +478,7 @@ def document_symbol_query(
         if candidate.name.lower() == leaf or candidate.full_name.lower().endswith(f"::{leaf}")
     ]
     if not filtered:
-        filtered = candidates
+        return []
     filtered.sort(key=lambda candidate: _direct_candidate_score(candidate, symbol))
 
     results: list[QueryResult] = []
@@ -488,80 +508,213 @@ def document_symbol_query(
     return results
 
 
+def _prefer_function_definitions(
+    candidates: list[SymbolCandidate],
+    project_root: Path,
+    query: str,
+) -> list[SymbolCandidate]:
+    def key(candidate: SymbolCandidate) -> tuple[tuple[int, int, int], int, str]:
+        implementation_penalty = 0
+        if candidate.kind in FUNCTIONLIKE_KINDS:
+            try:
+                snippet = _extract_candidate_source(candidate.location, candidate, query)
+            except OSError:
+                implementation_penalty = 1
+            else:
+                if not _looks_like_function_definition(snippet):
+                    implementation_penalty = 1
+            if not candidate.location.path.exists():
+                implementation_penalty = 1
+        try:
+            relative = str(candidate.location.path.resolve().relative_to(project_root))
+        except ValueError:
+            relative = str(candidate.location.path)
+        return (candidate.score, implementation_penalty, relative)
+
+    return sorted(candidates, key=key)
+
+
+def _extract_candidate_source(
+    location: Location,
+    candidate: SymbolCandidate,
+    query: str,
+):
+    return extract_source(
+        location.path,
+        location.range.start,
+        symbol_name=candidate.full_name or query,
+        kind=candidate.kind,
+        preferred_range=location.range,
+    )
+
+
+def _looks_like_function_definition(snippet) -> bool:
+    source = snippet.source.strip()
+    if not source or "{" not in source:
+        return False
+    if source.endswith(";"):
+        return False
+    return True
+
+
 def candidate_source_files(project_root: Path, symbol: str) -> list[Path]:
-    leaf = symbol.rsplit("::", 1)[-1]
-    snake = _camel_to_snake(leaf)
-    names = {
-        f"{leaf}.h",
-        f"{leaf}.hpp",
-        f"{leaf}.cpp",
-        f"{snake}.h",
-        f"{snake}.hpp",
-        f"{snake}.cpp",
-    }
-    result: list[Path] = []
-    for root_name in ("core", "scene", "editor", "servers", "main", "modules", "drivers"):
+    parts = _symbol_parts(symbol)
+    leaf = parts[-1] if parts else symbol
+    result = _named_candidate_source_files(project_root, parts or [leaf], leaf=leaf, limit=20)
+
+    if len(parts) > 1 and len(result) < 20:
+        for path in _files_containing_symbols(project_root, parts, leaf=leaf, limit=20):
+            _append_unique_path(result, path)
+            if len(result) >= 20:
+                return result
+
+    if len(result) < 20:
+        for path in _files_containing_symbols(project_root, [leaf], leaf=leaf, limit=20):
+            _append_unique_path(result, path)
+            if len(result) >= 20:
+                return result
+    return result
+
+
+def _named_candidate_source_files(
+    project_root: Path,
+    parts: list[str],
+    *,
+    leaf: str,
+    limit: int,
+) -> list[Path]:
+    names = _candidate_file_names(parts)
+    matches: list[tuple[tuple[int, int, str], Path]] = []
+    for root_name in SOURCE_ROOTS:
         root = project_root / root_name
         if not root.exists():
             continue
         for path in root.rglob("*"):
-            if path.name in names and path.suffix.lower() in {".h", ".hpp", ".hh", ".cpp", ".cc", ".cxx"}:
-                result.append(path)
-                if len(result) >= 20:
-                    return result
-    if not result:
-        result.extend(_files_containing_symbol(project_root, leaf, limit=20))
-    return result
+            if path.name not in names or path.suffix.lower() not in SOURCE_SUFFIXES:
+                continue
+            try:
+                content = path.read_bytes()
+            except OSError:
+                content = b""
+            matches.append((_source_file_score(path, content, leaf), path))
+    matches.sort(key=lambda item: item[0])
+    return [path for _score, path in matches[:limit]]
 
 
 def _files_containing_symbol(project_root: Path, symbol: str, *, limit: int) -> list[Path]:
-    if not symbol:
+    return _files_containing_symbols(project_root, [symbol], leaf=symbol, limit=limit)
+
+
+def _files_containing_symbols(
+    project_root: Path,
+    symbols: list[str],
+    *,
+    leaf: str,
+    limit: int,
+) -> list[Path]:
+    symbols = [symbol for symbol in symbols if symbol]
+    if not symbols:
         return []
-    roots = ("core", "scene", "editor", "servers", "main", "modules", "drivers")
-    suffixes = {".h", ".hpp", ".hh", ".cpp", ".cc", ".cxx"}
-    result: list[Path] = []
-    needle = symbol.encode("utf-8", errors="ignore")
-    for root_name in roots:
+    needles = [symbol.encode("utf-8", errors="ignore") for symbol in symbols]
+    matches: list[tuple[tuple[int, int, str], Path]] = []
+    for root_name in SOURCE_ROOTS:
         root = project_root / root_name
         if not root.exists():
             continue
         for path in root.rglob("*"):
-            if path.suffix.lower() not in suffixes:
+            if path.suffix.lower() not in SOURCE_SUFFIXES:
                 continue
             try:
-                if needle in path.read_bytes():
-                    result.append(path)
-                    if len(result) >= limit:
-                        return result
+                content = path.read_bytes()
             except OSError:
                 continue
-    return result
+            if not all(needle in content for needle in needles):
+                continue
+            matches.append((_source_file_score(path, content, leaf), path))
+    matches.sort(key=lambda item: item[0])
+    return [path for _score, path in matches[:limit]]
 
 
-def _direct_candidate_score(candidate: SymbolCandidate, symbol: str) -> tuple[int, int, int, int]:
+def _direct_candidate_score(candidate: SymbolCandidate, symbol: str) -> tuple[int, int, int, int, int]:
     leaf = symbol.rsplit("::", 1)[-1].lower()
+    query = symbol.lower()
     name = candidate.name.lower()
     full_name = candidate.full_name.lower()
-    if name == leaf:
+    if full_name == query:
         tier = 0
-    elif full_name.endswith(f"::{leaf}"):
+    elif "::" in symbol and full_name.endswith(f"::{query}"):
         tier = 1
-    elif leaf in name:
-        tier = 2
-    elif leaf in full_name:
+    elif name == leaf:
+        tier = 2 if "::" in symbol else 0
+    elif full_name.endswith(f"::{leaf}"):
         tier = 3
-    else:
+    elif leaf in name:
+        tier = 3
+    elif leaf in full_name:
         tier = 4
-    return (tier, len(full_name), candidate.location.range.start.line, candidate.location.range.start.character)
+    else:
+        tier = 5
+    return (
+        tier,
+        _candidate_declaration_penalty(candidate, symbol),
+        len(full_name),
+        candidate.location.range.start.line,
+        candidate.location.range.start.character,
+    )
+
+
+def _candidate_declaration_penalty(candidate: SymbolCandidate, query: str) -> int:
+    if candidate.kind not in CLASSLIKE_KINDS:
+        return 0
+    try:
+        snippet = _extract_candidate_source(candidate.location, candidate, query)
+    except OSError:
+        return 1
+    return 0 if "{" in snippet.source else 1
+
+
+def _candidate_file_names(parts: list[str]) -> set[str]:
+    names: set[str] = set()
+    for part in parts:
+        snake = _camel_to_snake(part)
+        for stem in {part, snake}:
+            names.update({f"{stem}.h", f"{stem}.hpp", f"{stem}.cpp"})
+    return names
+
+
+def _symbol_parts(symbol: str) -> list[str]:
+    return [part for part in symbol.split("::") if part]
+
+
+def _source_file_score(path: Path, content: bytes, leaf: str) -> tuple[int, int, str]:
+    try:
+        text = content.decode("utf-8", errors="replace")
+    except Exception:
+        text = ""
+    definition_penalty = 0 if _contains_type_definition(text, leaf) else 1
+    suffix_penalty = 0 if path.suffix.lower() in {".h", ".hpp", ".hh"} else 1
+    return (definition_penalty, suffix_penalty, str(path))
+
+
+def _contains_type_definition(text: str, leaf: str) -> bool:
+    if not leaf:
+        return False
+    pattern = re.compile(
+        rf"\b(?:class|struct|union|enum)\s+(?:class\s+|struct\s+)?{re.escape(leaf)}\b"
+    )
+    return pattern.search(text) is not None
+
+
+def _append_unique_path(paths: list[Path], path: Path) -> None:
+    if path not in paths:
+        paths.append(path)
 
 
 def _camel_to_snake(value: str) -> str:
-    chars: list[str] = []
-    for index, char in enumerate(value):
-        if char.isupper() and index > 0:
-            chars.append("_")
-        chars.append(char.lower())
-    return "".join(chars)
+    value = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", value)
+    value = re.sub(r"([a-z])([A-Z])", r"\1_\2", value)
+    value = re.sub(r"([A-Za-z])([0-9])", r"\1_\2", value)
+    return value.lower()
 
 
 def _remaining_request_timeout(deadline: float) -> float:

@@ -1,0 +1,467 @@
+[
+  {
+    "id": "class_node",
+    "category": "普通类定义",
+    "symbol": "Node",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "Node",
+      "path_contains": "scene/main/node.h",
+      "source_contains": "class Node"
+    }
+  },
+  {
+    "id": "class_navigation_server_2d",
+    "category": "普通类定义",
+    "symbol": "NavigationServer2D",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "NavigationServer2D",
+      "path_contains": "servers/navigation_2d/navigation_server_2d.h",
+      "source_contains": "class NavigationServer2D"
+    }
+  },
+  {
+    "id": "struct_navmesh_geometry_parser_2d",
+    "category": "结构体定义",
+    "symbol": "NavMeshGeometryParser2D",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "NavMeshGeometryParser2D",
+      "path_contains": "servers/navigation_2d/navigation_server_2d.h",
+      "source_contains": "struct NavMeshGeometryParser2D"
+    }
+  },
+  {
+    "id": "nested_struct_ray_result",
+    "category": "嵌套结构体/类型",
+    "symbol": "PhysicsDirectSpaceState3D::RayResult",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "PhysicsDirectSpaceState3D::RayResult",
+      "path_contains": "servers/physics_3d/physics_server_3d.h",
+      "source_contains": "struct RayResult"
+    }
+  },
+  {
+    "id": "template_class_heap",
+    "category": "模板类",
+    "symbol": "Heap",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "Heap",
+      "path_contains": "servers/nav_heap.h",
+      "source_contains": "template <typename T"
+    }
+  },
+  {
+    "id": "template_class_safe_numeric",
+    "category": "模板类",
+    "symbol": "SafeNumeric",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "SafeNumeric",
+      "path_contains": "core/templates/safe_refcount.h",
+      "source_contains": "template <typename T"
+    }
+  },
+  {
+    "id": "template_struct_noop_indexer",
+    "category": "模板结构体",
+    "symbol": "NoopIndexer",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "NoopIndexer",
+      "path_contains": "servers/nav_heap.h",
+      "source_contains": "struct NoopIndexer"
+    }
+  },
+  {
+    "id": "enum_pathfinding_algorithm",
+    "category": "普通 enum",
+    "symbol": "NavigationEnums2D::PathfindingAlgorithm",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Enum",
+      "full_name_contains": "NavigationEnums2D::PathfindingAlgorithm",
+      "path_contains": "servers/navigation_2d/navigation_constants_2d.h",
+      "source_contains": "enum PathfindingAlgorithm"
+    }
+  },
+  {
+    "id": "enum_class_input_event_type",
+    "category": "enum class",
+    "symbol": "InputEventType",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Enum",
+      "full_name_contains": "InputEventType",
+      "path_contains": "core/input/input_enums.h",
+      "source_contains": "enum class InputEventType"
+    }
+  },
+  {
+    "id": "enum_class_multi_uma_buffer_type",
+    "category": "enum class",
+    "symbol": "MultiUmaBufferType",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Enum",
+      "full_name_contains": "MultiUmaBufferType",
+      "path_contains": "servers/rendering/multi_uma_buffer.h",
+      "source_contains": "enum class MultiUmaBufferType"
+    }
+  },
+  {
+    "id": "enum_member_pathfinding_astar",
+    "category": "枚举成员",
+    "symbol": "PATHFINDING_ALGORITHM_ASTAR",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Enum",
+      "full_name_contains": "PATHFINDING_ALGORITHM_ASTAR",
+      "path_contains": "navigation_constants",
+      "source_contains": "PATHFINDING_ALGORITHM_ASTAR"
+    }
+  },
+  {
+    "id": "namespace_navigation_enums",
+    "category": "命名空间",
+    "symbol": "NavigationEnums2D",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "Namespace",
+      "full_name_contains": "NavigationEnums2D",
+      "path_contains": "servers/navigation_2d/navigation_constants_2d.h",
+      "source_contains": "namespace NavigationEnums2D"
+    }
+  },
+  {
+    "id": "namespace_function_math_sin",
+    "category": "命名空间函数",
+    "symbol": "Math::sin",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Function",
+      "full_name_contains": "Math::sin",
+      "path_contains": "core/math/math_funcs.h",
+      "source_contains": "sin("
+    }
+  },
+  {
+    "id": "inline_free_function_mouse_button_to_mask",
+    "category": "命名空间/自由函数",
+    "symbol": "mouse_button_to_mask",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Function",
+      "full_name_contains": "mouse_button_to_mask",
+      "path_contains": "core/input/input_enums.h",
+      "source_contains": "mouse_button_to_mask"
+    }
+  },
+  {
+    "id": "global_function_register_server_types",
+    "category": "自由函数",
+    "symbol": "register_server_types",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Function",
+      "full_name_contains": "register_server_types",
+      "path_contains": "servers/register_server_types.cpp",
+      "source_contains": "void register_server_types"
+    }
+  },
+  {
+    "id": "method_movie_writer_write_begin",
+    "category": "成员函数实现",
+    "symbol": "MovieWriter::write_begin",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Method",
+      "full_name_contains": "MovieWriter::write_begin",
+      "path_contains": "servers/movie_writer/movie_writer.cpp",
+      "source_contains": "MovieWriter::write_begin"
+    }
+  },
+  {
+    "id": "method_const_get_pathfinding_algorithm",
+    "category": "const 成员函数",
+    "symbol": "NavigationPathQueryParameters2D::get_pathfinding_algorithm",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Method",
+      "full_name_contains": "NavigationPathQueryParameters2D::get_pathfinding_algorithm",
+      "path_contains": "servers/navigation_2d/navigation_path_query_parameters_2d.cpp",
+      "source_contains": "get_pathfinding_algorithm() const"
+    }
+  },
+  {
+    "id": "overload_write_begin",
+    "category": "成员函数重载",
+    "symbol": "write_begin",
+    "limit": 5,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "any_full_name_contains": "MovieWriter::write_begin",
+      "any_path_contains": "movie_writer",
+      "min_results": 2
+    }
+  },
+  {
+    "id": "constructor_editor_log",
+    "category": "构造函数",
+    "symbol": "EditorLog::EditorLog",
+    "limit": 2,
+    "timeout": 4.0,
+    "required": true,
+    "no_implementation": true,
+    "expect": {
+      "first_kind": "Constructor",
+      "full_name_contains": "EditorLog::EditorLog",
+      "path_contains": "editor/editor_log.cpp",
+      "source_contains": "EditorLog::EditorLog()"
+    }
+  },
+  {
+    "id": "destructor_editor_log",
+    "category": "析构函数",
+    "symbol": "EditorLog::~EditorLog",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "no_implementation": true,
+    "expect": {
+      "first_kind": "Constructor",
+      "full_name_contains": "EditorLog::~EditorLog",
+      "path_contains": "editor/editor_log.cpp",
+      "source_contains": "EditorLog::~EditorLog()"
+    }
+  },
+  {
+    "id": "operator_string_name_equals",
+    "category": "运算符重载",
+    "symbol": "StringName::operator==",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "no_implementation": true,
+    "expect": {
+      "first_kind": "Method",
+      "full_name_contains": "StringName::operator==",
+      "path_contains": "core/string/string_name",
+      "source_contains": "operator=="
+    }
+  },
+  {
+    "id": "virtual_base_method_no_implementation",
+    "category": "虚函数/override 对照",
+    "symbol": "NavigationServer2D::source_geometry_parser_create",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "no_implementation": true,
+    "expect": {
+      "first_kind": "Method",
+      "full_name_contains": "NavigationServer2D::source_geometry_parser_create",
+      "path_contains": "servers/navigation_2d/navigation_server_2d.cpp",
+      "source_contains": "NavigationServer2D::source_geometry_parser_create"
+    }
+  },
+  {
+    "id": "static_member_setting_property_name",
+    "category": "静态成员变量",
+    "symbol": "NavigationServer2DManager::setting_property_name",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Property",
+      "full_name_contains": "NavigationServer2DManager::setting_property_name",
+      "path_contains": "servers/navigation_2d/navigation_server_2d.cpp",
+      "source_contains": "setting_property_name"
+    }
+  },
+  {
+    "id": "file_scope_variable_navigation_server_2d",
+    "category": "文件作用域变量",
+    "symbol": "navigation_server_2d",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Variable",
+      "full_name_contains": "navigation_server_2d",
+      "path_contains": "servers/navigation_2d/navigation_server_2d.cpp",
+      "source_contains": "navigation_server_2d"
+    }
+  },
+  {
+    "id": "static_array_locale_renames",
+    "category": "文件作用域数组变量",
+    "symbol": "locale_renames",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Variable",
+      "full_name_contains": "locale_renames",
+      "path_contains": "core/string/locales.h",
+      "source_contains": "locale_renames"
+    }
+  },
+  {
+    "id": "member_field_debug_flag",
+    "category": "成员字段",
+    "symbol": "debug_navigation_avoidance_enable_obstacles_static",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "Field",
+      "any_full_name_contains": "NavigationServer2D::debug_navigation_avoidance_enable_obstacles_static",
+      "any_path_contains": "servers/navigation_2d/navigation_server_2d.h",
+      "source_contains": "debug_navigation_avoidance_enable_obstacles_static"
+    }
+  },
+  {
+    "id": "constexpr_namespace_variable",
+    "category": "constexpr 变量",
+    "symbol": "NavigationDefaults2D::NAV_MESH_CELL_SIZE",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "Variable",
+      "full_name_contains": "NavigationDefaults2D::NAV_MESH_CELL_SIZE",
+      "path_contains": "servers/navigation_2d/navigation_constants_2d.h",
+      "source_contains": "NAV_MESH_CELL_SIZE"
+    }
+  },
+  {
+    "id": "macro_unique_node_prefix",
+    "category": "宏定义",
+    "symbol": "UNIQUE_NODE_PREFIX",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "String",
+      "full_name_contains": "UNIQUE_NODE_PREFIX",
+      "path_contains": "core/string/string_name.h",
+      "source_contains": "UNIQUE_NODE_PREFIX"
+    }
+  },
+  {
+    "id": "macro_sname_function_like",
+    "category": "函数宏",
+    "symbol": "SNAME",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "String",
+      "full_name_contains": "SNAME",
+      "path_contains": "core/string/string_name.h",
+      "source_contains": "SNAME"
+    }
+  },
+  {
+    "id": "macro_safe_numeric_type_pun",
+    "category": "多行函数宏",
+    "symbol": "SAFE_NUMERIC_TYPE_PUN_GUARANTEES",
+    "limit": 1,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "String",
+      "full_name_contains": "SAFE_NUMERIC_TYPE_PUN_GUARANTEES",
+      "path_contains": "core/templates/safe_refcount.h",
+      "source_contains": "SAFE_NUMERIC_TYPE_PUN_GUARANTEES"
+    }
+  },
+  {
+    "id": "typedef_size2",
+    "category": "typedef alias",
+    "symbol": "Size2",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "Size2",
+      "path_contains": "core/math/vector2.h",
+      "source_contains": "Size2"
+    }
+  },
+  {
+    "id": "using_char_string",
+    "category": "using alias",
+    "symbol": "CharString",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": false,
+    "expect": {
+      "first_kind": "Class",
+      "full_name_contains": "CharString",
+      "path_contains": "core/string/ustring.h",
+      "source_contains": "CharString"
+    }
+  },
+  {
+    "id": "ambiguous_short_name_file_sort_option",
+    "category": "作用域歧义",
+    "symbol": "FileSortOption",
+    "limit": 3,
+    "timeout": 4.0,
+    "required": true,
+    "expect": {
+      "first_kind": "Enum",
+      "min_results": 2,
+      "any_path_contains": "file_dialog.h",
+      "source_contains": "FileSortOption"
+    }
+  }
+]
