@@ -27,7 +27,7 @@ Set variables explicitly:
 
 ```bash
 PROJECT_ROOT=/path/to/cpp/project
-SCOUT=/path/to/cpp-symbol-scout
+SCOUT=/path/to/cpp-symbol-scout/skills/cpp-symbol-scout
 ```
 
 If the CLI is installed:
@@ -56,7 +56,7 @@ cpp-symbol-scout stop --project "$PROJECT_ROOT"
 
 ## Install Or Locate The CLI
 
-When the command is missing, first check whether this repository is the current directory. If it is, run through `PYTHONPATH=src`. Otherwise locate the installed skill directory in common Codex/OpenCode locations:
+When the command is missing, first check whether the current directory is this skill directory. If it is, run through `PYTHONPATH=src`. Otherwise locate the installed skill directory in common Codex/OpenCode locations:
 
 ```bash
 find ~/.codex/skills ~/.config/opencode/skills ~/.claude/skills ~/.agents/skills \

@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "cpp-symbol-scout"
 version = "0.1.0"
 description = "Fast C++ symbol lookup CLI backed by a persistent clangd daemon."
-readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "cpp-symbol-scout contributors" }]

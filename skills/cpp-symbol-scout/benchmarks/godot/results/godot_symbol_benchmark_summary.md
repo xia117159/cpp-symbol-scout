@@ -1,7 +1,7 @@
 # Godot 符号查询压测结果
 
 - 项目：`/home/cheng/godotengine/godot-master`
-- 用例文件：`/home/cheng/workspace/cpp-symbol-scout/benchmarks/godot/godot_symbol_cases.json`
+- 用例文件：`/home/cheng/workspace/cpp-symbol-scout/skills/cpp-symbol-scout/benchmarks/godot/godot_symbol_cases.json`
 - clangd：`/usr/lib/llvm-18/bin/clangd`
 - compile_commands_dir：`/home/cheng/godotengine/godot-master`
 - daemon：`127.0.0.1:55490`

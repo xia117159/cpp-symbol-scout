@@ -28,7 +28,7 @@ Set paths explicitly:
 
 ```bash
 PROJECT_ROOT=/path/to/cpp/project
-FINDER=/path/to/cpp-symbol-scout/tools/cpp-include-finder
+FINDER=/path/to/cpp-symbol-scout/skills/cpp-include-finder
 ```
 
 One-off query from this repository:
@@ -74,4 +74,3 @@ scene/main/node.h:54
 ## Boundaries
 
 This is a static declaration scanner, not a full C++ compiler. Treat macro-generated declarations and heavy conditional compilation results as candidates that may need compile validation.
-

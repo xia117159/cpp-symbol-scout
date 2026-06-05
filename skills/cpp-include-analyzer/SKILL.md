@@ -28,7 +28,7 @@ Set paths explicitly:
 
 ```bash
 PROJECT_ROOT=/path/to/cpp/project
-ANALYZER=/path/to/cpp-symbol-scout/tools/cpp-include-analyzer
+ANALYZER=/path/to/cpp-symbol-scout/skills/cpp-include-analyzer
 ```
 
 Analyze a project:
@@ -68,4 +68,3 @@ For code review, report concrete file paths and counts rather than broad conclus
 ## Boundaries
 
 This tool performs static include graph analysis. It does not run the preprocessor and does not know whether an include is semantically necessary.
-
