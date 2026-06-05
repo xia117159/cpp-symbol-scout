@@ -7,6 +7,11 @@ cpp-symbol-scout 是一个基于 clangd 的 C/C++ 符号查询工具，同时也
 - Python CLI：`cpp-symbol-scout`，通过常驻 daemon 复用 clangd 进程和索引缓存。
 - 通用 Skill：根目录 `SKILL.md`，可安装到 Codex CLI 或 OpenCode 的技能目录中。
 
+仓库还包含两个独立的 C++ include 工具 Skill，位于 `tools/`：
+
+- `tools/cpp-include-finder`：查找类型、枚举、typedef、using alias 对应的推荐 include。
+- `tools/cpp-include-analyzer`：分析 include 图、fan-in/fan-out、重复 include、未解析 include 和 include 循环。
+
 ## 方案概览
 
 推荐工作流如下：
@@ -143,6 +148,13 @@ ln -sfn /home/cheng/workspace/cpp-symbol-scout ~/.codex/skills/cpp-symbol-scout
 
 也可以直接描述 C/C++ 符号查询任务，由技能描述触发。
 
+如果还要安装 include 工具 Skill，将各自子目录作为独立 Skill 链接：
+
+```bash
+ln -sfn /home/cheng/workspace/cpp-symbol-scout/tools/cpp-include-finder ~/.codex/skills/cpp-include-finder
+ln -sfn /home/cheng/workspace/cpp-symbol-scout/tools/cpp-include-analyzer ~/.codex/skills/cpp-include-analyzer
+```
+
 ## 安装为 OpenCode Skill
 
 OpenCode 支持从项目或全局目录加载 `SKILL.md`。全局安装：
@@ -180,6 +192,8 @@ ln -sfn /home/cheng/workspace/cpp-symbol-scout .opencode/skills/cpp-symbol-scout
 - `references/cli-workflow.md`：CLI、daemon、查询方式细节。
 - `references/integration.md`：Codex CLI 与 OpenCode 安装方式。
 - `references/troubleshooting.md`：clangd、编译数据库、性能和无结果排查。
+- `tools/cpp-include-finder/SKILL.md`：include 查找 Skill。
+- `tools/cpp-include-analyzer/SKILL.md`：include 图分析 Skill。
 
 AI Agent 使用该 Skill 时，会优先使用已安装的 `cpp-symbol-scout` 命令；如果命令不存在，则通过本仓库的 `PYTHONPATH=src python3 -B -m cpp_symbol_scout` 运行。
 
@@ -240,4 +254,6 @@ PYTHONPATH=src python3 -B -m unittest discover -s tests -v
 
 ```bash
 python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
+python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py tools/cpp-include-finder
+python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py tools/cpp-include-analyzer
 ```

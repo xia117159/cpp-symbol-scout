@@ -1,4 +1,4 @@
-# 独立 C++ 工具
+# 独立 C++ 工具与 Skills
 
 本目录存放与 `cpp-symbol-scout` 并列的独立 CLI 工具。它们共享同一个 git 仓库，但不是同一个 Python 包，也不依赖 `cpp-symbol-scout`。
 
@@ -9,4 +9,9 @@
 
 ## 与 SKILL 的关系
 
-当前这两个目录是独立 CLI 工具，不是 SKILL。若后续要让 Codex CLI 或 OPENCODE 按“技能”方式自动调用，可以在各自目录或仓库层增加 `SKILL.md`，描述触发条件、输入输出和推荐命令。
+这两个目录现在也都是独立 Skill：
+
+- `tools/cpp-include-finder/SKILL.md`
+- `tools/cpp-include-analyzer/SKILL.md`
+
+它们可以作为独立 Skill 目录安装到 Codex CLI 或 OpenCode，也可以直接在仓库内通过 `PYTHONPATH=src python3 -m ...` 使用 CLI。

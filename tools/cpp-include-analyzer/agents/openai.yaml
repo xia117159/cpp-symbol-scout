@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Include Analyzer"
+  short_description: "Analyze C++ include dependencies"
+  default_prompt: "Use $cpp-include-analyzer to inspect include coupling for this C++ project."

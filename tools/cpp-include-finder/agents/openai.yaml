@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Include Finder"
+  short_description: "Find C++ declaration headers"
+  default_prompt: "Use $cpp-include-finder to find the correct header for this C++ type."
