@@ -1,6 +1,6 @@
 # C++ AI Skills
 
-这是一个面向 AI 辅助 C++ 大型项目开发的 SKILL 集合仓库。仓库当前包含七个相互独立的 SKILL，每个 SKILL 都有自己的 `SKILL.md`、Python CLI、`pyproject.toml` 和测试，不依赖其他 SKILL 才能运行。
+这是一个面向 AI 辅助 C++ 大型项目开发的 SKILL 集合仓库。仓库当前包含八个相互独立的 SKILL，每个 SKILL 都有自己的 `SKILL.md`、Python CLI、`pyproject.toml` 和测试，不依赖其他 SKILL 才能运行。
 
 ## SKILL 清单
 
@@ -13,6 +13,7 @@
 | `cpp-call-hierarchy` | `skills/cpp-call-hierarchy` | 基于 clangd 查询 incoming calls，并在必要时静态提取 outgoing 调用候选。 |
 | `cpp-type-inspector` | `skills/cpp-type-inspector` | 基于 clangd hover/definition/typeDefinition 查看表达式、变量、函数和类类型。 |
 | `cpp-diagnostic-context` | `skills/cpp-diagnostic-context` | 解析 Clang/GCC 编译日志，提取错误位置、include 栈、模板栈和源码上下文。 |
+| `cpp-static-checker` | `skills/cpp-static-checker` | 基于 clang-tidy 对 C/C++ 文件、git 改动或日志做静态检查和 AI 友好诊断摘要。 |
 
 Godot 工程只作为大型 C++ 项目的测试样本；这些 SKILL 不包含 Godot 专用逻辑。
 
@@ -40,7 +41,8 @@ Godot 工程只作为大型 C++ 项目的测试样本；这些 SKILL 不包含 G
     ├── cpp-reference-finder/
     ├── cpp-call-hierarchy/
     ├── cpp-type-inspector/
-    └── cpp-diagnostic-context/
+    ├── cpp-diagnostic-context/
+    └── cpp-static-checker/
 └── services/
     └── cpp-clangd-service/
 └── libraries/
@@ -65,6 +67,7 @@ ln -sfn "$REPO/skills/cpp-reference-finder" ~/.codex/skills/cpp-reference-finder
 ln -sfn "$REPO/skills/cpp-call-hierarchy" ~/.codex/skills/cpp-call-hierarchy
 ln -sfn "$REPO/skills/cpp-type-inspector" ~/.codex/skills/cpp-type-inspector
 ln -sfn "$REPO/skills/cpp-diagnostic-context" ~/.codex/skills/cpp-diagnostic-context
+ln -sfn "$REPO/skills/cpp-static-checker" ~/.codex/skills/cpp-static-checker
 ```
 
 使用时可以显式指定：
@@ -77,6 +80,7 @@ ln -sfn "$REPO/skills/cpp-diagnostic-context" ~/.codex/skills/cpp-diagnostic-con
 使用 $cpp-call-hierarchy 分析 Node::add_child 的调用层级。
 使用 $cpp-type-inspector 查看某个 C++ 表达式的精确类型。
 使用 $cpp-diagnostic-context 分析这段 C++ 编译错误日志。
+使用 $cpp-static-checker 对这次 C++ 改动运行 clang-tidy 静态检查。
 ```
 
 ## 安装到 OpenCode
@@ -93,6 +97,7 @@ ln -sfn "$REPO/skills/cpp-reference-finder" ~/.config/opencode/skills/cpp-refere
 ln -sfn "$REPO/skills/cpp-call-hierarchy" ~/.config/opencode/skills/cpp-call-hierarchy
 ln -sfn "$REPO/skills/cpp-type-inspector" ~/.config/opencode/skills/cpp-type-inspector
 ln -sfn "$REPO/skills/cpp-diagnostic-context" ~/.config/opencode/skills/cpp-diagnostic-context
+ln -sfn "$REPO/skills/cpp-static-checker" ~/.config/opencode/skills/cpp-static-checker
 ```
 
 项目本地安装：
@@ -107,6 +112,7 @@ ln -sfn "$REPO/skills/cpp-reference-finder" .opencode/skills/cpp-reference-finde
 ln -sfn "$REPO/skills/cpp-call-hierarchy" .opencode/skills/cpp-call-hierarchy
 ln -sfn "$REPO/skills/cpp-type-inspector" .opencode/skills/cpp-type-inspector
 ln -sfn "$REPO/skills/cpp-diagnostic-context" .opencode/skills/cpp-diagnostic-context
+ln -sfn "$REPO/skills/cpp-static-checker" .opencode/skills/cpp-static-checker
 ```
 
 如果 OpenCode 对 skill 加载有权限限制，需要在项目的 `opencode.json` 中允许对应 skill。
@@ -170,6 +176,13 @@ cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-diagnostic-context
 PYTHONPATH=src python3 -B -m cpp_diagnostic_context analyze build.log --project /path/to/cpp/project
 ```
 
+`cpp-static-checker`：
+
+```bash
+cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-static-checker
+PYTHONPATH=src python3 -B -m cpp_static_checker check --project /path/to/cpp/project --changed --json -n 50
+```
+
 ## 验证
 
 验证 SKILL 元数据：
@@ -182,6 +195,7 @@ python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.p
 python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/cpp-call-hierarchy
 python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/cpp-type-inspector
 python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/cpp-diagnostic-context
+python3 /home/cheng/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/cpp-static-checker
 ```
 
 运行单元测试：
@@ -206,6 +220,9 @@ cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-type-inspector
 PYTHONPATH=src python3 -B -m unittest discover -s tests -v
 
 cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-diagnostic-context
+PYTHONPATH=src python3 -B -m unittest discover -s tests -v
+
+cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-static-checker
 PYTHONPATH=src python3 -B -m unittest discover -s tests -v
 ```
 

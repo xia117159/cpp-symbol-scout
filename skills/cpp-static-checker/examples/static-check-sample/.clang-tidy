@@ -1,0 +1,14 @@
+Checks:
+  - -*
+  - bugprone-use-after-move
+  - modernize-deprecated-headers
+  - modernize-redundant-void-arg
+  - modernize-use-bool-literals
+  - modernize-use-nullptr
+  - performance-move-const-arg
+  - readability-braces-around-statements
+HeaderFileExtensions: [h, hh, hpp, hxx]
+ImplementationFileExtensions: [c, cc, cpp, cxx]
+HeaderFilterRegex: ".*"
+FormatStyle: none
+

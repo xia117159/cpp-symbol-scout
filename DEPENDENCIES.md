@@ -1,6 +1,6 @@
 # 依赖安装手册
 
-本文档说明本仓库七个 SKILL 的运行依赖和推荐安装方式。
+本文档说明本仓库八个 SKILL 的运行依赖和推荐安装方式。
 
 ## 基础依赖
 
@@ -54,6 +54,27 @@ clangd --version
 clangd-18 --version
 ```
 
+## clang-tidy 相关依赖
+
+`cpp-static-checker` 基于 clang-tidy 主动运行 C/C++ 静态检查，因此额外需要：
+
+- clang-tidy；
+- 目标项目的 `compile_commands.json`。
+
+Ubuntu/Debian 安装 clang-tidy：
+
+```bash
+sudo apt update
+sudo apt install -y clang-tidy
+clang-tidy --version
+```
+
+如果系统提供带版本号的 clang-tidy，也可以确认：
+
+```bash
+clang-tidy-18 --version
+```
+
 ## 准备编译数据库
 
 CMake 项目：
@@ -83,7 +104,7 @@ scons compiledb=yes compiledb_gen_only=yes
 compile_commands.json
 ```
 
-如果编译数据库不在项目根目录，使用 clangd 相关工具时传入：
+如果编译数据库不在项目根目录，使用 clangd 或 clang-tidy 相关工具时传入：
 
 ```bash
 --compile-commands-dir /path/to/project/build
@@ -115,6 +136,9 @@ python3 -m pip install -e .
 cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-diagnostic-context
 python3 -m pip install -e .
 
+cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-static-checker
+python3 -m pip install -e .
+
 cd /home/cheng/workspace/cpp-symbol-scout/services/cpp-clangd-service
 python3 -m pip install -e .
 ```
@@ -129,6 +153,7 @@ PYTHONPATH=src python3 -B -m cpp_reference_finder --help
 PYTHONPATH=src python3 -B -m cpp_call_hierarchy --help
 PYTHONPATH=src python3 -B -m cpp_type_inspector --help
 PYTHONPATH=src python3 -B -m cpp_diagnostic_context --help
+PYTHONPATH=src python3 -B -m cpp_static_checker --help
 PYTHONPATH=src python3 -B -m cpp_clangd_service --help
 ```
 
@@ -144,6 +169,7 @@ cpp-reference-finder --help
 cpp-call-hierarchy --help
 cpp-type-inspector --help
 cpp-diagnostic-context --help
+cpp-static-checker --help
 cpp-clangd-service --help
 ```
 
@@ -178,10 +204,14 @@ PYTHONPATH=src python3 -B -m unittest discover -s tests -v
 
 cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-diagnostic-context
 PYTHONPATH=src python3 -B -m unittest discover -s tests -v
+
+cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-static-checker
+PYTHONPATH=src python3 -B -m unittest discover -s tests -v
 ```
 
 ## 说明
 
 - `cpp-include-finder`、`cpp-include-analyzer`、`cpp-diagnostic-context` 只使用 Python 标准库，不依赖 clangd。
+- `cpp-static-checker` 只依赖 clang-tidy 和 Python 标准库，不依赖 `cpp-clangd-service`。
 - clangd 相关工具默认复用 `cpp-clangd-service`；首次用于大型项目时，clangd 需要时间建立索引，重复查询和精确位置查询通常更稳定。
-- 如果目标项目缺少编译数据库，clangd 相关工具的查询质量和稳定性会明显下降。
+- 如果目标项目缺少编译数据库，clangd 相关工具的查询质量和稳定性会明显下降，clang-tidy 静态检查也可能出现不准确或无法解析的问题。

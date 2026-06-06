@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Static Checker"
+  short_description: "Run clang-tidy static checks"
+  default_prompt: "Use $cpp-static-checker to run clang-tidy checks for this C++ change."

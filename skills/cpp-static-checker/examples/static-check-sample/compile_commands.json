@@ -1,0 +1,8 @@
+[
+  {
+    "directory": "/home/cheng/workspace/cpp-symbol-scout/skills/cpp-static-checker/examples/static-check-sample",
+    "command": "/usr/bin/g++ -std=c++17 -Iinclude -c src/static_check_sample.cpp -o build/static_check_sample.o",
+    "file": "src/static_check_sample.cpp"
+  }
+]
+
