@@ -43,9 +43,13 @@ Godot 工程只作为大型 C++ 项目的测试样本；这些 SKILL 不包含 G
     └── cpp-diagnostic-context/
 └── services/
     └── cpp-clangd-service/
+└── libraries/
+    └── cpp-build-log-filter/
 ```
 
 `services/cpp-clangd-service` 不是 SKILL，它是常驻 clangd 服务进程。`cpp-symbol-scout`、`cpp-reference-finder`、`cpp-call-hierarchy`、`cpp-type-inspector` 默认连接该服务，避免每次 CLI 调用都重新初始化 clangd。
+
+`libraries/cpp-build-log-filter` 不是 SKILL，它是纯 Python 工具库：输入整段 CMake/Make/C++ 构建日志文本，输出过滤后的关键信息文本，便于 AI Agent 降低编译输出的上下文占用。
 
 ## 安装到 Codex CLI
 
