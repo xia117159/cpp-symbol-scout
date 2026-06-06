@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Reference Finder"
+  short_description: "Find semantic C++ symbol references"
+  default_prompt: "Use $cpp-reference-finder to find real C++ references for this symbol."

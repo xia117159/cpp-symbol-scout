@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Diagnostic Context"
+  short_description: "Extract compiler error context"
+  default_prompt: "Use $cpp-diagnostic-context to summarize this C++ compiler log into actionable fix context."

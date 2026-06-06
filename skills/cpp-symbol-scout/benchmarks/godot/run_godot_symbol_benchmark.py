@@ -38,7 +38,7 @@ def main() -> int:
     parser.add_argument("--results-dir", type=Path, default=DEFAULT_RESULTS_DIR)
     parser.add_argument("--clangd", default="clangd-18")
     parser.add_argument("--python", default=sys.executable)
-    parser.add_argument("--cold-stop", action="store_true", help="stop any existing daemon first")
+    parser.add_argument("--cold-stop", action="store_true", help="stop any existing service first")
     parser.add_argument("--start-timeout", type=float, default=30.0)
     parser.add_argument("--warmup-timeout", type=float, default=4.0)
     args = parser.parse_args()
@@ -292,7 +292,7 @@ def build_summary(
         f"- 用例文件：`{cases_path}`",
         f"- clangd：`{status_data.get('clangd')}`",
         f"- compile_commands_dir：`{status_data.get('compile_commands_dir')}`",
-        f"- daemon：`{status_data.get('tcp')}`",
+        f"- service：`{status_data.get('tcp')}`",
         "",
         "## 总览",
         "",
@@ -357,7 +357,7 @@ def build_summary(
             "",
             "- “通过”只统计语义校验，不把 1 秒耗时作为硬性通过条件；耗时单独在性能检查中记录。",
             "- `required=false` 的用例用于记录宏、typedef/using、namespace、字段等当前实现的边界。",
-            "- `tool_elapsed_ms` 来自 daemon 返回的结果；`command_elapsed_ms` 包含 CLI 进程启动和 JSON 输出成本。",
+            "- `tool_elapsed_ms` 来自服务返回的结果；`command_elapsed_ms` 包含 CLI 进程启动和 JSON 输出成本。",
         ]
     )
     return "\n".join(lines) + "\n"

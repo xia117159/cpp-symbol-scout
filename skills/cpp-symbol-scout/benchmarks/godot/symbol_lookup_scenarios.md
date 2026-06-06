@@ -7,7 +7,7 @@
 - Godot 项目路径：`/home/cheng/godotengine/godot-master`
 - Godot 项目存在 `compile_commands.json`
 - 本机可用 `clangd-18`
-- 使用 daemon 查询路径，重复查询应复用 clangd 进程和工具缓存
+- 使用 `cpp-clangd-service` 查询路径，重复查询应复用 clangd 进程和工具缓存
 
 ## 场景矩阵
 

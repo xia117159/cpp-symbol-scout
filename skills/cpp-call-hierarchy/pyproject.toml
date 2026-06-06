@@ -1,0 +1,16 @@
+[project]
+name = "cpp-call-hierarchy"
+version = "0.1.0"
+description = "Inspect C/C++ incoming and outgoing call hierarchy through clangd."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+cpp-call-hierarchy = "cpp_call_hierarchy.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

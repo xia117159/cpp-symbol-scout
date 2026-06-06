@@ -14,13 +14,12 @@ from .daemon import (
     DaemonError,
     QueryOptions,
     candidate_source_files,
-    client_request,
     document_symbol_query,
     query_with_client,
-    run_daemon,
 )
 from .lsp import ClangdClient
-from .paths import ConfigurationError, ProjectConfig, runtime_paths
+from .paths import ConfigurationError, ProjectConfig
+from .service_client import ServiceClientError, request as service_request
 
 
 DEFAULT_PROJECT = "."
@@ -31,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "daemon":
-        return run_daemon(args)
+        return command_daemon(args)
     if args.command == "start":
         return command_start(args)
     if args.command == "status":
@@ -48,33 +47,39 @@ def main(argv: list[str] | None = None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="cpp-symbol-scout",
-        description="Fast C++ symbol lookup CLI backed by a persistent clangd daemon.",
+        description="Fast C++ symbol lookup CLI backed by cpp-clangd-service.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     subparsers = parser.add_subparsers(dest="command")
 
-    start = subparsers.add_parser("start", help="start the clangd-backed daemon")
+    start = subparsers.add_parser("start", help="start cpp-clangd-service for this project")
     _add_project_args(start)
-    start.add_argument("--foreground", action="store_true", help="run daemon in the foreground")
-    start.add_argument("--wait", action="store_true", help="wait until the daemon answers status")
+    start.add_argument("--foreground", action="store_true", help="run service in the foreground")
+    start.add_argument("--wait", action="store_true", help="wait until the service answers status")
     start.add_argument("--wait-timeout", type=float, default=15.0, help="seconds to wait with --wait")
 
-    daemon = subparsers.add_parser("daemon", help="run the daemon process")
+    daemon = subparsers.add_parser("daemon", help="run cpp-clangd-service in the foreground")
     _add_project_args(daemon)
 
-    status = subparsers.add_parser("status", help="show daemon status")
+    status = subparsers.add_parser("status", help="show cpp-clangd-service status")
     _add_client_project_arg(status)
     status.add_argument("--json", action="store_true", help="print JSON")
 
-    stop = subparsers.add_parser("stop", help="stop the daemon")
+    stop = subparsers.add_parser("stop", help="stop cpp-clangd-service")
     _add_client_project_arg(stop)
 
     query = subparsers.add_parser("query", help="query a class, function, method, or other symbol")
     _add_client_project_arg(query)
     query.add_argument("symbol", help="symbol name, for example Node or EditorNode::save_scene")
     query.add_argument("-n", "--limit", type=int, default=5, help="maximum number of candidates")
-    query.add_argument("--timeout", type=float, default=1.0, help="daemon-side query timeout in seconds")
+    query.add_argument("--timeout", type=float, default=1.0, help="service-side query timeout in seconds")
+    query.add_argument(
+        "--service-timeout",
+        type=float,
+        default=60.0,
+        help="client-side timeout when waiting for cpp-clangd-service",
+    )
     query.add_argument("--json", action="store_true", help="print JSON")
     query.add_argument(
         "--no-implementation",
@@ -89,7 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument(
         "--direct",
         action="store_true",
-        help="run one query directly through clangd instead of using the daemon",
+        help="run one query directly through clangd instead of using cpp-clangd-service",
     )
     query.add_argument("--clangd", default=os.environ.get("CLANGD", "clangd"), help="path to clangd")
     query.add_argument(
@@ -106,96 +111,28 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def command_start(args: argparse.Namespace) -> int:
+    service_args = _service_project_args("start", args)
     if args.foreground:
-        return run_daemon(args)
-
-    try:
-        config = ProjectConfig.discover(
-            args.project,
-            clangd=args.clangd,
-            compile_commands_dir=args.compile_commands_dir,
-            require_compile_db=not args.allow_missing_compile_db,
-        )
-    except ConfigurationError as exc:
-        print(f"configuration error: {exc}", file=sys.stderr)
-        return 2
-
-    paths = runtime_paths(config.project_root)
-    if paths.socket_path.exists():
-        try:
-            response = client_request(
-                project=config.project_root,
-                payload={"command": "status"},
-                timeout=0.3,
-            )
-            status = response["status"]
-            print(f"daemon already running: {status['tcp']}")
-            return 0
-        except Exception:
-            paths.socket_path.unlink(missing_ok=True)
-
-    command = [
-        sys.executable,
-        "-m",
-        "cpp_symbol_scout",
-        "daemon",
-        "--project",
-        str(config.project_root),
-        "--clangd",
-        config.clangd_path,
-    ]
-    if config.compile_commands_dir is not None:
-        command.extend(["--compile-commands-dir", str(config.compile_commands_dir)])
-    if args.allow_missing_compile_db:
-        command.append("--allow-missing-compile-db")
-
-    log = paths.log_path.open("ab")
-    proc = subprocess.Popen(
-        command,
-        cwd=Path.cwd(),
-        stdin=subprocess.DEVNULL,
-        stdout=log,
-        stderr=log,
-        start_new_session=True,
-    )
-    paths.pid_path.write_text(str(proc.pid), encoding="ascii")
-
+        service_args.append("--foreground")
     if args.wait:
-        deadline = time.monotonic() + args.wait_timeout
-        last_error: Exception | None = None
-        while time.monotonic() < deadline:
-            try:
-                response = client_request(
-                    project=config.project_root,
-                    payload={"command": "status"},
-                    timeout=0.5,
-                )
-                status = response["status"]
-                print(f"daemon ready: {status['tcp']}")
-                return 0
-            except Exception as exc:
-                last_error = exc
-                time.sleep(0.25)
-        print(f"daemon did not become ready within {args.wait_timeout:.1f}s", file=sys.stderr)
-        if last_error is not None:
-            print(f"last error: {last_error}", file=sys.stderr)
-        print(f"log: {paths.log_path}", file=sys.stderr)
-        return 1
+        service_args.append("--wait")
+    service_args.extend(["--wait-timeout", str(args.wait_timeout)])
+    return _run_cpp_clangd_service(service_args)
 
-    print(f"daemon starting: {paths.host}:{paths.port}")
-    print(f"log: {paths.log_path}")
-    return 0
+
+def command_daemon(args: argparse.Namespace) -> int:
+    return _run_cpp_clangd_service(_service_project_args("daemon", args))
 
 
 def command_status(args: argparse.Namespace) -> int:
     try:
-        response = client_request(
+        response = service_request(
             project=args.project,
             payload={"command": "status"},
             timeout=2.0,
         )
-    except DaemonError as exc:
-        print(str(exc), file=sys.stderr)
+    except (OSError, ServiceClientError) as exc:
+        print(_service_unavailable_message(args.project, exc), file=sys.stderr)
         return 1
 
     status = response["status"]
@@ -205,22 +142,22 @@ def command_status(args: argparse.Namespace) -> int:
         print(f"project: {status['project_root']}")
         print(f"clangd: {status['clangd']}")
         print(f"compile_commands_dir: {status['compile_commands_dir']}")
-        print(f"socket: {status['socket']}")
         print(f"tcp: {status['tcp']}")
+        print(f"pid: {status['pid']}")
         print(f"log: {status['log']}")
         print(f"ready: {status['ready']}")
         print(f"uptime_seconds: {status['uptime_seconds']}")
-        print(f"cache_entries: {status['cache_entries']}")
+        print(f"symbol_cache_entries: {status.get('symbol_cache_entries', 0)}")
     return 0
 
 
 def command_stop(args: argparse.Namespace) -> int:
     try:
-        client_request(project=args.project, payload={"command": "stop"}, timeout=2.0)
-    except DaemonError as exc:
-        print(str(exc), file=sys.stderr)
+        service_request(project=args.project, payload={"command": "stop"}, timeout=2.0)
+    except (OSError, ServiceClientError) as exc:
+        print(_service_unavailable_message(args.project, exc), file=sys.stderr)
         return 1
-    print("daemon stopped")
+    print("service stopped")
     return 0
 
 
@@ -240,18 +177,19 @@ def command_query(args: argparse.Namespace) -> int:
             return 1
     else:
         payload = {
-            "command": "query",
+            "command": "symbol_query",
             "symbol": args.symbol,
             "limit": args.limit,
             "timeout": args.timeout,
             "resolve_implementation": not args.no_implementation,
         }
         try:
-            response = client_request(project=args.project, payload=payload, timeout=args.timeout + 1.0)
-        except DaemonError as exc:
-            print(str(exc), file=sys.stderr)
+            response = service_request(project=args.project, payload=payload, timeout=args.service_timeout)
+        except (OSError, ServiceClientError) as exc:
+            print(_service_unavailable_message(args.project, exc), file=sys.stderr)
             return 1
-        results = response.get("results") or []
+        result_payload = response.get("result") or {}
+        results = result_payload.get("results") or []
     if args.json:
         print(json.dumps(results, indent=2, ensure_ascii=False))
         return 0 if results else 1
@@ -340,6 +278,54 @@ def _warm_direct_query(client: ClangdClient, project_root: Path, symbol: str) ->
         except Exception:
             continue
     return opened
+
+
+def _service_project_args(command: str, args: argparse.Namespace) -> list[str]:
+    service_args = [
+        command,
+        "--project",
+        str(Path(args.project).expanduser()),
+        "--clangd",
+        args.clangd,
+    ]
+    if args.compile_commands_dir:
+        service_args.extend(["--compile-commands-dir", args.compile_commands_dir])
+    if args.allow_missing_compile_db:
+        service_args.append("--allow-missing-compile-db")
+    return service_args
+
+
+def _run_cpp_clangd_service(args: list[str]) -> int:
+    env = os.environ.copy()
+    service_src = _service_source_path()
+    if service_src is not None:
+        existing = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = str(service_src) if not existing else f"{service_src}{os.pathsep}{existing}"
+    command = [sys.executable, "-B", "-m", "cpp_clangd_service", *args]
+    completed = subprocess.run(command, env=env)
+    if completed.returncode != 0 and service_src is None:
+        print(
+            "cpp-clangd-service is not importable. Install services/cpp-clangd-service "
+            "or run it from this repository.",
+            file=sys.stderr,
+        )
+    return completed.returncode
+
+
+def _service_source_path() -> Path | None:
+    repo_root = Path(__file__).resolve().parents[4]
+    candidate = repo_root / "services" / "cpp-clangd-service" / "src"
+    return candidate if candidate.is_dir() else None
+
+
+def _service_unavailable_message(project: str, exc: BaseException) -> str:
+    project_root = Path(project).expanduser().resolve()
+    return (
+        f"cpp-clangd-service is not available for {project_root}: {exc}. "
+        f"Start it with: cpp-clangd-service start --project {project_root} --wait "
+        f"or cpp-symbol-scout start --project {project_root} --wait. "
+        "Pass --direct for one-off debugging."
+    )
 
 
 def _add_project_args(parser: argparse.ArgumentParser) -> None:

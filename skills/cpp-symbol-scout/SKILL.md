@@ -1,6 +1,6 @@
 ---
 name: cpp-symbol-scout
-description: Use this skill when an agent needs fast clangd-backed C/C++ symbol lookup or source retrieval from Codex CLI or OpenCode, including locating class/function/method definitions or implementations, querying by symbol name, using compile_commands.json, and operating the cpp-symbol-scout Python daemon. Also use for C/C++ 符号查询、定义/实现定位、源码片段提取。
+description: Use this skill when an agent needs fast clangd-backed C/C++ symbol lookup or source retrieval from Codex CLI or OpenCode, including locating class/function/method definitions or implementations, querying by symbol name, using compile_commands.json, and reusing the shared cpp-clangd-service. Also use for C/C++ 符号查询、定义/实现定位、源码片段提取。
 license: MIT
 metadata:
   short-description: Fast clangd C++ symbol lookup
@@ -16,9 +16,10 @@ Use `cpp-symbol-scout` to locate C/C++ symbols through clangd and return the def
 ## Operating Rules
 
 - Confirm the C/C++ project root and compile database first. `compile_commands.json` or `compile_flags.txt` is required unless the user explicitly accepts degraded results.
-- Use the daemon workflow for repeated queries or performance-sensitive work: `start`, `query`, `status`, `stop`.
+- Use the shared service workflow for repeated queries or performance-sensitive work: start `cpp-clangd-service`, then run `query`.
+- `cpp-symbol-scout start/status/stop` forwards to `cpp-clangd-service` for compatibility.
 - Use `--direct` only to debug clangd or installation problems; it starts clangd for every query and is not the high-performance path.
-- Keep query timeouts small after the daemon is warm. Use `--timeout 1` for normal lookups and increase only when clangd is still indexing or the symbol is ambiguous.
+- Keep query timeouts small after the service is warm. Use `--timeout 1` for normal lookups and increase only when clangd is still indexing or the symbol is ambiguous.
 - Return file paths and line numbers to the user. Include full snippets only when the user asks for source, implementation, or exact code.
 
 ## Quick Workflow
@@ -28,19 +29,20 @@ Set variables explicitly:
 ```bash
 PROJECT_ROOT=/path/to/cpp/project
 SCOUT=/path/to/cpp-symbol-scout/skills/cpp-symbol-scout
+SERVICE=/path/to/cpp-symbol-scout/services/cpp-clangd-service
 ```
 
 If the CLI is installed:
 
 ```bash
-cpp-symbol-scout start --project "$PROJECT_ROOT" --wait
+cpp-clangd-service start --project "$PROJECT_ROOT" --wait
 cpp-symbol-scout query 'SymbolName' --project "$PROJECT_ROOT" --timeout 1 -n 1
 ```
 
 If using this skill repository without installing the package:
 
 ```bash
-PYTHONPATH="$SCOUT/src" python3 -B -m cpp_symbol_scout start --project "$PROJECT_ROOT" --wait
+PYTHONPATH="$SERVICE/src" python3 -B -m cpp_clangd_service start --project "$PROJECT_ROOT" --wait
 PYTHONPATH="$SCOUT/src" python3 -B -m cpp_symbol_scout query 'SymbolName' --project "$PROJECT_ROOT" --timeout 1 -n 1
 ```
 
@@ -69,8 +71,8 @@ After locating the skill repository, either use `PYTHONPATH="$SCOUT/src"` or ins
 python3 -m pip install -e "$SCOUT"
 ```
 
-Read [references/cli-workflow.md](references/cli-workflow.md) when you need compile database examples, daemon lifecycle details, or output interpretation.
+Read [references/cli-workflow.md](references/cli-workflow.md) when you need compile database examples, service lifecycle details, or output interpretation.
 
 Read [references/integration.md](references/integration.md) when installing or adapting the skill for Codex CLI, OpenCode, or project-local skill folders.
 
-Read [references/troubleshooting.md](references/troubleshooting.md) when clangd is missing, the daemon is not ready, queries return no results, or performance misses the 1-second target.
+Read [references/troubleshooting.md](references/troubleshooting.md) when clangd is missing, the service is not ready, queries return no results, or performance misses the 1-second target.

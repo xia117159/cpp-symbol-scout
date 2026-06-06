@@ -1,0 +1,16 @@
+[project]
+name = "cpp-diagnostic-context"
+version = "0.1.0"
+description = "Extract actionable C/C++ diagnostic context from compiler logs."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+cpp-diagnostic-context = "cpp_diagnostic_context.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Call Hierarchy"
+  short_description: "Inspect C++ incoming/outgoing calls"
+  default_prompt: "Use $cpp-call-hierarchy to inspect incoming and outgoing C++ calls for this function."

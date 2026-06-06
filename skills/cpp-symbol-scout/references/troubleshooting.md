@@ -11,7 +11,7 @@ clangd --version || clangd-18 --version || clangd-17 --version
 Install clangd with the system package manager, or pass the executable explicitly:
 
 ```bash
-cpp-symbol-scout start --project "$PROJECT_ROOT" --clangd /path/to/clangd --wait
+cpp-clangd-service start --project "$PROJECT_ROOT" --clangd /path/to/clangd --wait
 ```
 
 ## Compile Database Is Missing
@@ -20,21 +20,21 @@ The tool requires `compile_commands.json` or `compile_flags.txt` by default. Gen
 
 Use `--allow-missing-compile-db` only for degraded debugging, not for reliable symbol lookup.
 
-## Daemon Fails To Become Ready
+## Service Fails To Become Ready
 
 Run:
 
 ```bash
-cpp-symbol-scout status --project "$PROJECT_ROOT"
+cpp-clangd-service status --project "$PROJECT_ROOT"
 ```
 
 If status cannot connect, start with a longer wait:
 
 ```bash
-cpp-symbol-scout start --project "$PROJECT_ROOT" --wait --wait-timeout 30
+cpp-clangd-service start --project "$PROJECT_ROOT" --wait --wait-timeout 30
 ```
 
-The start command prints the daemon log path. Inspect that log for clangd startup errors, invalid compile database paths, or permission issues.
+The start command prints the service log path. Inspect that log for clangd startup errors, invalid compile database paths, or permission issues.
 
 ## No Results
 
@@ -58,4 +58,4 @@ Common causes:
 - the compile database points at stale or missing build paths;
 - direct mode is being used.
 
-Use the daemon, prefer qualified names, and retry after the first successful lookup. For very large projects, the first indexing pass can take minutes.
+Use `cpp-clangd-service`, prefer qualified names, and retry after the first successful lookup. For very large projects, the first indexing pass can take minutes.

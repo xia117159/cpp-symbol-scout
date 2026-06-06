@@ -22,30 +22,30 @@ scons compiledb=yes compiledb_gen_only=yes
 If the database is outside the project root, pass the directory:
 
 ```bash
-cpp-symbol-scout start --project "$PROJECT_ROOT" --compile-commands-dir "$PROJECT_ROOT/build" --wait
+cpp-clangd-service start --project "$PROJECT_ROOT" --compile-commands-dir "$PROJECT_ROOT/build" --wait
 ```
 
-## Daemon Lifecycle
+## Service Lifecycle
 
 Start once per project root:
 
 ```bash
-cpp-symbol-scout start --project "$PROJECT_ROOT" --wait
+cpp-clangd-service start --project "$PROJECT_ROOT" --wait
 ```
 
 Check readiness and cache size:
 
 ```bash
-cpp-symbol-scout status --project "$PROJECT_ROOT"
+cpp-clangd-service status --project "$PROJECT_ROOT"
 ```
 
 Stop when finished:
 
 ```bash
-cpp-symbol-scout stop --project "$PROJECT_ROOT"
+cpp-clangd-service stop --project "$PROJECT_ROOT"
 ```
 
-The daemon keeps one clangd process alive, so repeated queries reuse clangd initialization, background index state, and the tool's in-memory cache.
+`cpp-symbol-scout start/status/stop` also forwards to `cpp-clangd-service` for compatibility. The service keeps one clangd process alive, so repeated queries reuse clangd initialization, background index state, and the tool's in-memory cache.
 
 ## Query Patterns
 
@@ -85,7 +85,7 @@ Each human-readable result includes symbol kind, full name, resolution mode, ela
 
 The 1-second target applies after:
 
-- the daemon is already running;
+- the service is already running;
 - clangd initialization has completed;
 - the background index is warm enough for the queried symbol, or the relevant file has already been opened;
 - the project compile database is valid.

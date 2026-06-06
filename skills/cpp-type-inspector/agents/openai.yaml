@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ Type Inspector"
+  short_description: "Inspect C++ types through clangd"
+  default_prompt: "Use $cpp-type-inspector to inspect the exact C++ type at this symbol or source position."
