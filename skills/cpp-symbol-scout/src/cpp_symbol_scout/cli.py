@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
+from .class_members import (
+    members_payload_from_symbol_result,
+    select_class_symbol_result,
+)
 from .daemon import (
     DaemonError,
     QueryOptions,
@@ -39,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_stop(args)
     if args.command == "query":
         return command_query(args)
+    if args.command == "members":
+        return command_members(args)
 
     parser.print_help()
     return 2
@@ -102,6 +108,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="directory containing compile_commands.json or compile_flags.txt",
     )
     query.add_argument(
+        "--allow-missing-compile-db",
+        action="store_true",
+        help="query even when compile_commands.json or compile_flags.txt cannot be found",
+    )
+
+    members = subparsers.add_parser("members", help="list class/struct methods, fields, and nested types")
+    _add_client_project_arg(members)
+    members.add_argument("symbol", help="class or struct name, for example Node or EditorNode")
+    members.add_argument("--access", choices=("all", "public", "protected", "private"), default="all")
+    members.add_argument("--kind", choices=("all", "method", "field", "type"), default="all")
+    members.add_argument("-n", "--limit", type=int, default=200, help="maximum members to print")
+    members.add_argument("--candidate-limit", type=int, default=5, help="maximum class candidates to inspect")
+    members.add_argument("--timeout", type=float, default=2.0, help="service-side query timeout in seconds")
+    members.add_argument(
+        "--service-timeout",
+        type=float,
+        default=60.0,
+        help="client-side timeout when waiting for cpp-clangd-service",
+    )
+    members.add_argument("--json", action="store_true", help="print JSON")
+    members.add_argument(
+        "--direct",
+        action="store_true",
+        help="run one query directly through clangd instead of using cpp-clangd-service",
+    )
+    members.add_argument("--clangd", default=os.environ.get("CLANGD", "clangd"), help="path to clangd")
+    members.add_argument(
+        "--compile-commands-dir",
+        help="directory containing compile_commands.json or compile_flags.txt",
+    )
+    members.add_argument(
         "--allow-missing-compile-db",
         action="store_true",
         help="query even when compile_commands.json or compile_flags.txt cannot be found",
@@ -204,6 +241,65 @@ def command_query(args: argparse.Namespace) -> int:
     return 0 if results else 1
 
 
+def command_members(args: argparse.Namespace) -> int:
+    if args.limit <= 0:
+        print("--limit must be positive", file=sys.stderr)
+        return 2
+    if args.candidate_limit <= 0:
+        print("--candidate-limit must be positive", file=sys.stderr)
+        return 2
+    if args.timeout <= 0:
+        print("--timeout must be positive", file=sys.stderr)
+        return 2
+
+    try:
+        if args.direct:
+            results = _direct_symbol_query(
+                project=args.project,
+                symbol=args.symbol,
+                limit=args.candidate_limit,
+                timeout=args.timeout,
+                resolve_implementation=False,
+                clangd=args.clangd,
+                compile_commands_dir=args.compile_commands_dir,
+                allow_missing_compile_db=args.allow_missing_compile_db,
+            )
+        else:
+            payload = {
+                "command": "symbol_query",
+                "symbol": args.symbol,
+                "limit": args.candidate_limit,
+                "timeout": args.timeout,
+                "resolve_implementation": False,
+            }
+            response = service_request(args.project, payload=payload, timeout=args.service_timeout)
+            result_payload = response.get("result") or {}
+            results = result_payload.get("results") or []
+        selected = select_class_symbol_result(results)
+        if selected is None:
+            print(f"no class or struct definition found for {args.symbol}", file=sys.stderr)
+            return 1
+        payload = members_payload_from_symbol_result(
+            selected,
+            project_root=args.project,
+            access=args.access,
+            member_kind=args.kind,
+            limit=args.limit,
+        )
+    except (OSError, ConfigurationError, DaemonError, RuntimeError, ServiceClientError, ValueError) as exc:
+        if not args.direct and isinstance(exc, (OSError, ServiceClientError)):
+            print(_service_unavailable_message(args.project, exc), file=sys.stderr)
+        else:
+            print(str(exc), file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        _print_human_members(payload)
+    return 0 if payload["members"] else 1
+
+
 def _print_human_results(results: list[dict[str, Any]]) -> None:
     if not results:
         print("no results")
@@ -228,11 +324,34 @@ def _indent_source(source: str) -> str:
 
 
 def _direct_query(args: argparse.Namespace) -> list[dict[str, Any]]:
-    config = ProjectConfig.discover(
-        args.project,
+    return _direct_symbol_query(
+        project=args.project,
+        symbol=args.symbol,
+        limit=args.limit,
+        timeout=args.timeout,
+        resolve_implementation=not args.no_implementation,
         clangd=args.clangd,
         compile_commands_dir=args.compile_commands_dir,
-        require_compile_db=not args.allow_missing_compile_db,
+        allow_missing_compile_db=args.allow_missing_compile_db,
+    )
+
+
+def _direct_symbol_query(
+    *,
+    project: str,
+    symbol: str,
+    limit: int,
+    timeout: float,
+    resolve_implementation: bool,
+    clangd: str,
+    compile_commands_dir: str | None,
+    allow_missing_compile_db: bool,
+) -> list[dict[str, Any]]:
+    config = ProjectConfig.discover(
+        project,
+        clangd=clangd,
+        compile_commands_dir=compile_commands_dir,
+        require_compile_db=not allow_missing_compile_db,
     )
     client = ClangdClient(
         clangd_path=config.clangd_path,
@@ -241,15 +360,15 @@ def _direct_query(args: argparse.Namespace) -> list[dict[str, Any]]:
     )
     client.start()
     try:
-        warmed_files = _warm_direct_query(client, config.project_root, args.symbol)
+        warmed_files = _warm_direct_query(client, config.project_root, symbol)
         results = query_with_client(
             client=client,
             project_root=config.project_root,
-            symbol=args.symbol,
+            symbol=symbol,
             options=QueryOptions(
-                limit=args.limit,
-                timeout=args.timeout,
-                resolve_implementation=not args.no_implementation,
+                limit=limit,
+                timeout=timeout,
+                resolve_implementation=resolve_implementation,
             ),
         )
         if not results:
@@ -257,10 +376,10 @@ def _direct_query(args: argparse.Namespace) -> list[dict[str, Any]]:
                 client=client,
                 project_root=config.project_root,
                 files=warmed_files,
-                symbol=args.symbol,
+                symbol=symbol,
                 options=QueryOptions(
-                    limit=args.limit,
-                    timeout=args.timeout,
+                    limit=limit,
+                    timeout=timeout,
                     resolve_implementation=False,
                 ),
             )
@@ -278,6 +397,27 @@ def _warm_direct_query(client: ClangdClient, project_root: Path, symbol: str) ->
         except Exception:
             continue
     return opened
+
+
+def _print_human_members(payload: dict[str, Any]) -> None:
+    class_info = payload["class"]
+    location = class_info["location"]
+    class_path = location.get("relative_path") or location["path"]
+    print(f"class: {class_info.get('kind_name')} {class_info.get('full_name') or class_info.get('name')}")
+    print(f"definition: {class_path}:{location['line']}:{location.get('column') or location.get('character')}")
+    summary = payload["summary"]
+    print(
+        f"members: {summary['returned_count']}/{summary['member_count']} "
+        f"methods={summary['methods']} fields={summary['fields']} types={summary['types']} "
+        f"access={summary['access_filter']} kind={summary['kind_filter']}"
+    )
+
+    last_access = None
+    for member in payload["members"]:
+        if member["access"] != last_access:
+            last_access = member["access"]
+            print(f"\n{last_access}:")
+        print(f"  - {member['kind']} {member['name']}: {member['declaration']}")
 
 
 def _service_project_args(command: str, args: argparse.Namespace) -> list[str]:

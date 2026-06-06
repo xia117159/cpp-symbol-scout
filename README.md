@@ -129,6 +129,8 @@ PYTHONPATH=src python3 -B -m cpp_clangd_service start --project /path/to/cpp/pro
 
 cd /home/cheng/workspace/cpp-symbol-scout/skills/cpp-symbol-scout
 PYTHONPATH=src python3 -B -m cpp_symbol_scout query 'Namespace::Class::method' --project /path/to/cpp/project --timeout 1 -n 1
+
+PYTHONPATH=src python3 -B -m cpp_symbol_scout members 'Namespace::Class' --project /path/to/cpp/project --access public --json
 ```
 
 `cpp-include-finder`：

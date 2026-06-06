@@ -1,6 +1,6 @@
 ---
 name: cpp-symbol-scout
-description: Use this skill when an agent needs fast clangd-backed C/C++ symbol lookup or source retrieval from Codex CLI or OpenCode, including locating class/function/method definitions or implementations, querying by symbol name, using compile_commands.json, and reusing the shared cpp-clangd-service. Also use for C/C++ 符号查询、定义/实现定位、源码片段提取。
+description: Use this skill when an agent needs fast clangd-backed C/C++ symbol lookup, class member listing, or source retrieval from Codex CLI or OpenCode, including locating class/function/method definitions or implementations, listing class methods/fields by access level, querying by symbol name, using compile_commands.json, and reusing the shared cpp-clangd-service. Also use for C/C++ 符号查询、定义/实现定位、类成员列表、源码片段提取。
 license: MIT
 metadata:
   short-description: Fast clangd C++ symbol lookup
@@ -11,7 +11,7 @@ metadata:
 
 # cpp-symbol-scout
 
-Use `cpp-symbol-scout` to locate C/C++ symbols through clangd and return the definition or implementation location with a complete source snippet. Prefer it over text search when the user asks for a class, function, method, constructor, destructor, qualified symbol, or source implementation.
+Use `cpp-symbol-scout` to locate C/C++ symbols through clangd and return the definition or implementation location with a complete source snippet. It can also list a class or struct's methods, fields, and nested types without returning method bodies. Prefer it over text search when the user asks for a class, function, method, constructor, destructor, qualified symbol, source implementation, or class member list.
 
 ## Operating Rules
 
@@ -20,6 +20,7 @@ Use `cpp-symbol-scout` to locate C/C++ symbols through clangd and return the def
 - `cpp-symbol-scout start/status/stop` forwards to `cpp-clangd-service` for compatibility.
 - Use `--direct` only to debug clangd or installation problems; it starts clangd for every query and is not the high-performance path.
 - Keep query timeouts small after the service is warm. Use `--timeout 1` for normal lookups and increase only when clangd is still indexing or the symbol is ambiguous.
+- Use `members` when the user asks for a class API surface, public methods, fields/properties, or declarations without method implementations.
 - Return file paths and line numbers to the user. Include full snippets only when the user asks for source, implementation, or exact code.
 
 ## Quick Workflow
@@ -52,6 +53,8 @@ Useful query variants:
 cpp-symbol-scout query 'ClassName' --project "$PROJECT_ROOT" --source-only
 cpp-symbol-scout query 'Namespace::Class::method' --project "$PROJECT_ROOT" --json
 cpp-symbol-scout query 'method_name' --project "$PROJECT_ROOT" --timeout 4 -n 3
+cpp-symbol-scout members 'ClassName' --project "$PROJECT_ROOT" --access public --json
+cpp-symbol-scout members 'ClassName' --project "$PROJECT_ROOT" --kind method
 cpp-symbol-scout status --project "$PROJECT_ROOT"
 cpp-symbol-scout stop --project "$PROJECT_ROOT"
 ```
