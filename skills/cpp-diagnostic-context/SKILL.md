@@ -35,3 +35,21 @@ make 2>&1 | PYTHONPATH="$TOOL/src" python3 -B -m cpp_diagnostic_context analyze 
 ```
 
 Use the output to identify exact failing files, compressed include stacks, template instantiation chains, and nearby source snippets before editing.
+
+## Command Reference For Agents
+
+- `analyze LOG --project ROOT [--context-lines N] [-n N] [--json]`: parse a saved Clang/GCC-style compiler log.
+- `analyze - --project ROOT [--json]`: read a compiler log from stdin.
+- Use `--context-lines` to control source snippet size and `--limit`/`-n` to cap primary diagnostics for AI context.
+
+## JSON Output
+
+The JSON payload has `summary` and `diagnostics`. `summary` includes `diagnostics`, `errors`, `warnings`, and `notes`.
+
+Each diagnostic has `location`, `severity`, `message`, `include_stack`, `template_stack`, `notes`, and `snippet`. Notes are attached to the previous primary diagnostic when possible.
+
+## Failure Handling And Boundaries
+
+- Exit code `1` with no diagnostics means the log did not match supported Clang/GCC diagnostic patterns; inspect raw output for nonstandard build tool formatting.
+- The tool extracts primary warnings/errors/fatal errors and nearby context; it does not compile code or validate a fix.
+- Relative paths are resolved against `--project` when the source file exists; otherwise they are left as log paths.

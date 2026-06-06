@@ -38,6 +38,26 @@ PYTHONPATH="$TOOL/src" python3 -B -m cpp_reference_finder at path/to/file.cpp \
 
 Use `--include-declaration` when the declaration should be included in the result set. Use `--limit` to keep output compact for AI context.
 
+## Command Reference For Agents
+
+- `find SYMBOL --project ROOT [--include-declaration] [-n N] [--json]`: resolve a symbol by name, then ask clangd for semantic references.
+- `at FILE --line L --column C --project ROOT [--json]`: query references at an exact 1-based source position. Prefer this when the edit location is known.
+- Shared options: `--compile-commands-dir DIR`, `--no-compile-db` for degraded fallback, `--timeout SECONDS`, `--service-timeout SECONDS`, and `--direct` for debugging without `cpp-clangd-service`.
+
+## JSON Output
+
+The JSON payload has `query`, `symbol`, `position`, `include_declaration`, `reference_count`, and `references`.
+
+- `symbol` is present for `find` and includes `name`, `full_name`, `kind_name`, and definition `location`.
+- `position` is the source position used for the clangd reference request.
+- Each reference has `path`, `relative_path`, 1-based `line` and `column`, LSP `range`, and `snippet`.
+
+## Failure Handling And Boundaries
+
+- Empty `references` means clangd returned no semantic references for that position. First verify compile database, service readiness, indexing, and whether the cursor position names the intended symbol.
+- Name-based `find` can pick the wrong overload or similarly named symbol. Use `at` or a fully qualified symbol when correctness matters.
+- This is semantic reference lookup, not text search. It can miss macro-generated uses, inactive preprocessor branches, or files outside the compile database.
+
 ## Output Use
 
 Report concrete file paths, line numbers, symbol location, and the most relevant reference snippets. Treat empty results as a clangd/indexing or compile database signal before concluding that no references exist.

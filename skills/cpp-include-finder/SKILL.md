@@ -56,6 +56,26 @@ PYTHONPATH="$FINDER/src" python3 -B -m include_finder find 'TypeName' \
 
 If declarations live outside headers, add `--all-files`.
 
+## Command Reference For Agents
+
+- `find SYMBOL --project ROOT [-I INCLUDE_ROOT] [-n N] [--json]`: scan headers and return declaration candidates for a type, enum, typedef, or alias.
+- `find SYMBOL --index INDEX --json`: reuse a saved index for fast repeated lookups.
+- `find SYMBOL --project ROOT --save-index INDEX`: perform a lookup and save the generated index for later queries.
+- `build-index --project ROOT -o INDEX [--all-files] [--json]`: pre-scan a project and write a reusable declaration index.
+- Use repeated `-I DIR` when project include paths differ from the repository root. Use `--all-files` only when declarations are known to live in `.cpp`, `.ipp`, or `.inl` files.
+
+## JSON Output
+
+`find --json` returns a list of declaration candidates. Each item has `name`, `qualified_name`, `kind`, `path`, `line`, `column`, `include`, `is_definition`, and `snippet`.
+
+`build-index --json` returns `project_root`, `declarations`, and `output`. The index file itself contains `project_root` and a `declarations` array with the same candidate fields.
+
+## Failure Handling
+
+- `find` exits `1` and prints an empty JSON list or "no declarations found" when no candidate matches. Treat that as "not found by static scan", not proof that the type is absent.
+- If a likely declaration is missing, rerun with more specific namespace qualification, add `-I` include roots, or add `--all-files`.
+- Prefer a result whose `qualified_name` matches the requested type, `is_definition` is true, and `include` is a project-relative quoted include path.
+
 ## Output Interpretation
 
 Prefer the first result when:

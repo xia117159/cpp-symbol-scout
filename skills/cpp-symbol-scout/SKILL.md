@@ -59,6 +59,32 @@ cpp-symbol-scout status --project "$PROJECT_ROOT"
 cpp-symbol-scout stop --project "$PROJECT_ROOT"
 ```
 
+## Command Reference For Agents
+
+- `start --project ROOT [--clangd PATH] [--compile-commands-dir DIR] [--wait]`: start the shared clangd service for repeated queries. Use `--wait` before the first lookup in a large project.
+- `status --project ROOT [--json]`: verify service readiness, selected clangd, compile database directory, PID, log path, and cache size.
+- `stop --project ROOT`: stop the shared service for that project.
+- `query SYMBOL --project ROOT [-n N] [--json] [--source-only] [--no-implementation]`: find symbols and return source snippets. By default, function-like declarations are resolved to implementations when clangd can do it.
+- `members SYMBOL --project ROOT [--access all|public|protected|private] [--kind all|method|field|type] [-n N] [--json]`: list members from a class/struct declaration without method bodies.
+- Shared clangd options: use `--compile-commands-dir DIR` when the compile database is outside the root, `--allow-missing-compile-db` only for degraded fallback, and `--direct` only when debugging the service path.
+
+## JSON Output
+
+`query --json` returns a list. Each result has `name`, `full_name`, `kind`, `kind_name`, `location`, `source`, `source_range`, `resolution`, and `elapsed_ms`. `location.line` and `location.character` are 1-based for user-facing reporting; nested `range` values are LSP-style 0-based.
+
+`members --json` returns an object with:
+
+- `class`: selected class/struct candidate, including `name`, `full_name`, `kind_name`, `location`, and `source_range`.
+- `summary`: `member_count`, `returned_count`, `access_filter`, `kind_filter`, per-kind counts, and `truncated`.
+- `members`: items with `name`, `kind` (`method`, `field`, `type`), `access`, `declaration`, and `location`.
+
+## Failure Handling And Boundaries
+
+- Exit code `1` with empty results means no confident clangd result was returned; check service readiness, compile database, symbol qualification, and indexing before concluding the symbol does not exist.
+- If the service is unavailable, run `cpp-clangd-service start --project "$PROJECT_ROOT" --wait` or use `cpp-symbol-scout start --project "$PROJECT_ROOT" --wait`.
+- `members` inspects the selected class/struct declaration only. It does not expand inherited base-class members, does not return method implementations, and may miss macro-generated or heavily preprocessed members.
+- For overloaded or ambiguous names, prefer fully qualified symbols and increase `--candidate-limit` before increasing timeouts.
+
 ## Install Or Locate The CLI
 
 When the command is missing, first check whether the current directory is this skill directory. If it is, run through `PYTHONPATH=src`. Otherwise locate the installed skill directory in common Codex/OpenCode locations:

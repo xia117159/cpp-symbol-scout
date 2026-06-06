@@ -54,6 +54,26 @@ PYTHONPATH="$ANALYZER/src" python3 -B -m include_analyzer file path/to/file.h \
 
 If `compile_commands.json` is noisy, unavailable, or too slow to process, add `--no-compile-commands`.
 
+## Command Reference For Agents
+
+- `analyze --project ROOT [--limit N] [--json]`: scan the project include graph and rank fan-in, fan-out, hotspots, duplicate includes, unresolved includes, and cycles.
+- `file PATH --project ROOT [--json]`: show what one file includes, who includes it, duplicate include directives in that file, and fan-in/fan-out counts.
+- Use repeated `-I DIR` to add include roots. Use `--no-compile-commands` when compile database include paths are unavailable, stale, or too broad for a quick structural scan.
+
+## JSON Output
+
+`analyze --json` returns `project_root`, `include_roots`, `summary`, `edges`, `duplicate_includes`, and `cycles`. `summary` includes `files_scanned`, `include_edges`, `resolved_edges`, `unresolved_edges`, `duplicate_include_files`, `cycles`, `top_fan_in`, `top_fan_out`, and `hotspots`.
+
+Each include edge has `source`, `line`, `include`, `is_system`, and `resolved`. `resolved` is `null` when the include could not be mapped to a project file.
+
+`file --json` returns `file`, `includes`, `included_by`, `duplicate_includes`, `fan_in`, and `fan_out`.
+
+## Failure Handling
+
+- A high `unresolved_edges` count usually means missing include roots or generated headers, not necessarily broken includes.
+- Cycles are static strongly connected include components. Confirm with a build before making removals.
+- This tool exits successfully when analysis completes, even if duplicate includes, unresolved includes, or cycles are present.
+
 ## Output Interpretation
 
 - `fan_in`: project files that include the target; high values indicate broad rebuild impact.

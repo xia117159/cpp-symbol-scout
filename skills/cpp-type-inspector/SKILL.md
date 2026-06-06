@@ -37,3 +37,23 @@ PYTHONPATH="$TOOL/src" python3 -B -m cpp_type_inspector find 'Namespace::Class::
 ```
 
 Prefer `at` when possible because exact positions avoid overload ambiguity.
+
+## Command Reference For Agents
+
+- `at FILE --line L --column C --project ROOT [--json]`: inspect hover text, definition, and type definition at an exact 1-based source position.
+- `find SYMBOL --project ROOT [--json]`: resolve a symbol by name, then inspect the resolved position. Use only when no exact source position is available.
+- Shared options: `--compile-commands-dir DIR`, `--no-compile-db` for degraded fallback, `--timeout SECONDS`, `--service-timeout SECONDS`, and `--direct` for debugging without `cpp-clangd-service`.
+
+## JSON Output
+
+The JSON payload has `query`, `symbol`, `position`, `hover`, `type_summary`, `definitions`, and `type_definitions`.
+
+- `position` is the inspected location and includes a one-line `snippet`.
+- `hover.text` is clangd's raw hover text; `type_summary.display` is the first compact type-like line extracted from hover text.
+- `definitions` and `type_definitions` are location arrays with `path`, `relative_path`, 1-based `line` and `column`, LSP `range`, and `snippet`.
+
+## Failure Handling And Boundaries
+
+- Empty `hover.text` or empty definition arrays usually mean the cursor is not on an inspectable token, clangd lacks compile context, or the symbol is macro/generated.
+- For expressions, use `at`; name-based `find` is best for declarations and can choose the wrong overload.
+- Treat `type_summary.display` as a compact hint. Use `hover.text` when exact qualifiers, templates, references, or aliases matter.

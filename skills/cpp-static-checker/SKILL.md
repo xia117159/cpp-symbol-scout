@@ -55,6 +55,15 @@ cpp-static-checker checks --project "$PROJECT_ROOT" --checks 'modernize-*'
 cpp-static-checker explain clang-tidy.log --project "$PROJECT_ROOT" --json
 ```
 
+## Command Reference For Agents
+
+- `check --project ROOT --changed [--base REV] [--json]`: run clang-tidy on changed C/C++ files. This is the default choice after AI edits.
+- `check --project ROOT --file PATH [--file PATH...] [--json]`: run targeted checks on specific files.
+- `check --project ROOT --all [--source-only] [--max-files N]`: scan project files; use sparingly on large repos.
+- `checks --project ROOT [--checks EXPR] [--json]`: ask clang-tidy which checks are enabled by config and command-line expressions.
+- `explain LOG --project ROOT [--json]`: parse an existing clang-tidy log without running clang-tidy.
+- Important options: `--compile-commands-dir DIR`, `--checks EXPR`, `--warnings-as-errors EXPR`, `--header-filter REGEX`, `--system-headers`, `--timeout SECONDS`, `--context-lines N`, `--limit N`, and `--fail-on-diagnostics`.
+
 ## Output Use
 
 For JSON output, read `summary` first, then inspect `diagnostics`. Each diagnostic includes:
@@ -65,6 +74,17 @@ For JSON output, read `summary` first, then inspect `diagnostics`. Each diagnost
 - `snippet`: nearby source context.
 - `notes`: attached clang-tidy notes.
 - `has_fixit_hint`: whether the diagnostic text suggests a fix-it is available.
+
+`check --json` also includes `files`, where each item records the checked file, clang-tidy command, exit code, elapsed time, timeout flag, and per-file error message. `summary.diagnostics_truncated` tells you whether `--limit` hid additional diagnostics.
+
+`checks --json` reports enabled checks from clang-tidy. `explain --json` returns the same diagnostic shape as `check`, but without running clang-tidy.
+
+## Failure Handling And Boundaries
+
+- `--changed` selecting zero C/C++ files is not a clean static-analysis result; say no changed C/C++ files were selected.
+- A nonzero clang-tidy exit code can mean diagnostics, compiler errors, bad flags, timeout, or tool failure. Check `files[].exit_code`, `files[].timed_out`, and `files[].error_message`.
+- Do not use `--fix` or `--fix-errors` unless the user explicitly wants clang-tidy to edit files. Run once without fixes first.
+- If compile commands are missing, prefer generating or locating `compile_commands.json`; use `--allow-missing-compile-db` only for degraded fallback.
 
 When combining with other skills:
 
@@ -87,4 +107,3 @@ After locating the skill repository, either use `PYTHONPATH="$TOOL/src"` or inst
 ```bash
 python3 -m pip install -e "$TOOL"
 ```
-
